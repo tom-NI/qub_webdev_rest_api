@@ -59,23 +59,28 @@
             // first check the season input and check it exists within the DB before proceeding (incase user can change on client)
             $seasonStmt = $conn->prepare("SELECT SeasonID FROM epl_seasons WHERE SeasonYears LIKE ? ");
             $seasonYears = htmlentities($_GET['fullseason']);
-            if (is_numeric($seasonYears)) {
-                $seasonStmt->bind_param("i", $seasonYears);
+            if (checkSeasonRegex($seasonYears)) {
+                if (is_numeric($seasonYears)) {
+                    $seasonStmt->bind_param("i", $seasonYears);
+                } else {
+                    $seasonStmt->bind_param("s", $seasonYears);
+                }
+                $seasonStmt->execute();
+                $seasonStmt->store_result();
+    
+                // only proceed if the season exists in the database
+                if (($seasonStmt->num_rows() < 1) || ($seasonStmt->num_rows() > 1)) {
+                    http_response_code(400);
+                    die();
+                } else {
+                    $seasonStmt->bind_result($seasonID);
+                    $seasonStmt->fetch();
+                    $conditionQuery = "WHERE epl_seasons.SeasonID = {$seasonID}";
+                    $finalQuery = "{$mainMatchQuery} {$conditionQuery} {$orderQuery}";
+                }
             } else {
-                $seasonStmt->bind_param("s", $seasonYears);
-            }
-            $seasonStmt->execute();
-            $seasonStmt->store_result();
-
-            // only proceed if the season exists in the database
-            if (($seasonStmt->num_rows() < 1) || ($seasonStmt->num_rows() > 1)) {
                 http_response_code(400);
                 die();
-            } else {
-                $seasonStmt->bind_result($seasonID);
-                $seasonStmt->fetch();
-                $conditionQuery = "WHERE epl_seasons.SeasonID = {$seasonID}";
-                $finalQuery = "{$mainMatchQuery} {$conditionQuery} {$orderQuery}";
             }
         } elseif (isset($_GET['fixture'])) {
             // 1 fixture - get all records throughout history for stats analysis!

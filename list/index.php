@@ -3,7 +3,6 @@
 
     // API has a seperate functions file to mimic a true seperate server!
     require("../apifunctions.php");
-
     require("../part_authenticate.php"); {
     $finalDataSet = array();
 

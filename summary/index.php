@@ -3,7 +3,7 @@
 
     // api defines a seperate functions file to mimic a true seperate server!
     require("../apifunctions.php");
-
+    require("../dbconn.php");
     require("../part_authenticate.php"); {
         $finalDataSet = array();
         
@@ -21,41 +21,44 @@
         $matchSummaryQuery = "{$mainQuery} {$orderByQuery}";
 
         if (isset($_GET['season'])) {
-            $seasonYear = $_GET["season"];
+            $seasonYear = htmlentities($_GET["season"]);
             
             // only proceed with the query if the input matches regex constraints
             if (checkSeasonRegex($seasonYear)) {
-                $seasonIdQuery = "SELECT SeasonID FROM epl_seasons WHERE SeasonYears LIKE '%{$seasonYear}%' LIMIT 1";
-                $seasonIdData = dbQueryCheckReturn($seasonIdQuery);
-                if (mysqli_num_rows($seasonIdData) == 0) {
+                $seasonStmt = $conn->prepare("SELECT SeasonID FROM epl_seasons WHERE SeasonYears LIKE ? ;");
+                $seasonStmt -> bind_param("s", $seasonYear);
+                $seasonStmt -> execute();
+                $seasonStmt -> store_result();
+
+                if (($seasonStmt->num_rows() < 1) || ($seasonStmt->num_rows() > 1)) {
                     http_response_code(404);
+                    die();
                 } else {
-                    $row = $seasonIdData->fetch_row();
-                    $seasonID = $row[0];
+                    $seasonStmt->bind_result($seasonID);
+                    $seasonStmt->fetch();
+                    $seasonQuery = "WHERE SeasonID = {$seasonID}";
                 }
-                $seasonQuery = "WHERE SeasonID = {$seasonID}";
             } else {
                 http_response_code(400);
+                die();
             }
-            // always include a recent season to narrow the scope of the request!
             $matchSummaryQuery = "{$mainQuery} {$seasonQuery} {$orderByQuery}";
         } 
         if (isset($_GET['usersearch'])) {
             // wildcard search for main search bar!
-            $userEntry = $_GET['usersearch'];
-            // TODO - DO I NEED TO ADD UNDERSCORES HERE OR ON THE UI?
-            // $parsedUserEntry = addUnderScores($userEntry);
-
-            // search database to check if club exists
-            $checkUserQuery = "SELECT ClubID FROM epl_clubs WHERE ClubName LIKE '%{$userEntry}%' ";
-            $checkUsersData = dbQueryCheckReturn($checkUserQuery);
-
-            if (mysqli_num_rows($checkUsersData) > 1) {
+            $userSearchStmt = $conn->prepare("SELECT ClubID FROM epl_clubs WHERE ClubName LIKE ? ");
+            $userEntry = addUnderScores(htmlentities($_GET['usersearch']));
+            $userSearchStmt -> bind_param("s", $userEntry);
+            $userSearchStmt -> execute();
+            $userSearchStmt -> store_result();
+            
+            // only proceed if the club exists in the database
+            if ($userSearchStmt->num_rows > 1) {
                 http_response_code(400);
             } elseif (mysqli_num_rows($checkUsersData) > 0) {
-                while ($row = $checkUsersData->fetch_assoc()) {
-                    $usersSearchedClubID = $row['ClubID'];
-                }
+                $userSearchStmt -> bind_result($usersSearchedClubID);
+                $userSearchStmt -> fetch();
+
                 if (!isset($_GET['season'])) {
                     $userClubQuery = "WHERE HomeClubID = {$usersSearchedClubID} OR AwayClubId = {$usersSearchedClubID}";
                     $matchSummaryQuery = "{$mainQuery} {$userClubQuery} {$orderByQuery}";
@@ -71,7 +74,7 @@
             $limitQuery = queryPagination();
             $matchSummaryQuery = "{$matchSummaryQuery} {$limitQuery}";
         }
-        
+
         $matchSummaryData = dbQueryCheckReturn($matchSummaryQuery);
         while ($row = $matchSummaryData->fetch_assoc()) {
             $homeClubID = $row["HomeClubID"];
