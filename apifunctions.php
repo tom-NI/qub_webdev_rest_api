@@ -3,7 +3,7 @@
     function dbQueryCheckReturn($sqlQuery) {
         require("dbconn.php");
         $conn->set_charset('utf8mb4');
-        $sqlQuery = $mysqli->real_escape_string($sqlQuery);
+        $sqlQuery = $conn->real_escape_string($sqlQuery);
         $queriedValue = $conn->query($sqlQuery);
         if (!$queriedValue) {
             echo $conn->error;
@@ -36,15 +36,23 @@
     }
 
     function queryPagination() {
-        $matchCount = (int) $_GET['count'];
-        if (($matchCount > 0) && ($matchCount != null)) {
+        require("dbconn.php");
+        $matchCount = $conn->real_escape_string($_GET['count']);
+        $matchCount = (int) htmlentities($matchCount);
+
+        if (is_numeric($matchCount) && $matchCount > 0) {
             if (isset($_GET['startat'])) {
-                $startFromNum = (int) $_GET['startat'];
-                if ($startFromNum <= $matchCount) {
-                    $limitQuery = "LIMIT {$startFromNum}, {$matchCount}";
+                $startFromNum = $conn->real_escape_string($_GET['startat']);
+                $startFromNum = (int) htmlentities($startFromNum);
+                if (is_numeric($startFromNum) && !($startFromNum < 0)) {
+                    if ($startFromNum <= $matchCount) {
+                        $limitQuery = "LIMIT {$startFromNum}, {$matchCount};";
+                    } else {
+                        $limitQuery = "LIMIT {$matchCount};";
+                    }
                 }
             } else {
-                $limitQuery = "LIMIT {$matchCount}";
+                $limitQuery = "LIMIT {$matchCount};";
             }
         }
         return $limitQuery;

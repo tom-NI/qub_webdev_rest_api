@@ -10,14 +10,10 @@
         $seasonID = null;
         $finalCount = null;
 
-        $mainQuery = "SELECT epl_matches.MatchID, epl_matches.MatchDate,
-        epl_home_team_stats.HomeClubID, epl_home_team_stats.HTTotalGoals, epl_away_team_stats.ATTotalGoals, epl_away_team_stats.AwayClubID
-        FROM epl_matches
-        INNER JOIN epl_home_team_stats ON epl_matches.MatchID = epl_home_team_stats.MatchID 
-        INNER JOIN epl_away_team_stats ON epl_matches.MatchID = epl_away_team_stats.MatchID";
+        // CANT PUT THIS ONTO MULTI LINES AS IT INSERTS A NEWLINE CHAR AND BREAKS THE QUERY \n
+        $mainQuery = "SELECT epl_matches.MatchID, epl_matches.MatchDate, epl_home_team_stats.HomeClubID, epl_home_team_stats.HTTotalGoals, epl_away_team_stats.ATTotalGoals, epl_away_team_stats.AwayClubID FROM epl_matches INNER JOIN epl_home_team_stats ON epl_matches.MatchID = epl_home_team_stats.MatchID INNER JOIN epl_away_team_stats ON epl_matches.MatchID = epl_away_team_stats.MatchID";
 
         $orderByQuery = "ORDER BY epl_matches.MatchID DESC";
-
         $matchSummaryQuery = "{$mainQuery} {$orderByQuery}";
 
         if (isset($_GET['season'])) {
@@ -75,6 +71,7 @@
             $matchSummaryQuery = "{$matchSummaryQuery} {$limitQuery}";
         }
 
+        // run the query, return the data, build the JSON
         $matchSummaryData = dbQueryCheckReturn($matchSummaryQuery);
         while ($row = $matchSummaryData->fetch_assoc()) {
             $homeClubID = $row["HomeClubID"];
