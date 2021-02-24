@@ -17,7 +17,7 @@
         $matchSummaryQuery = "{$mainQuery} {$orderByQuery}";
 
         if (isset($_GET['season'])) {
-            $seasonYear = htmlentities($_GET["season"]);
+            $seasonYear = htmlentities(trim($_GET["season"]));
             
             // only proceed with the query if the input matches regex constraints
             if (checkSeasonRegex($seasonYear)) {
@@ -43,7 +43,7 @@
         if (isset($_GET['usersearch'])) {
             // wildcard search for main search bar!
             $userSearchStmt = $conn->prepare("SELECT ClubID FROM epl_clubs WHERE ClubName LIKE ? ");
-            $userEntry = addUnderScores(htmlentities($_GET['usersearch']));
+            $userEntry = addUnderScores(htmlentities(trim($_GET['usersearch'])));
             $userSearchStmt -> bind_param("s", $userEntry);
             $userSearchStmt -> execute();
             $userSearchStmt -> store_result();

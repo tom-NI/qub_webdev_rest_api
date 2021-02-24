@@ -3,6 +3,7 @@
 
     // API has a seperate functions file to mimic a true seperate server!
     require("../apifunctions.php");
+
     require("../part_authenticate.php"); {
     $finalDataSet = array();
 
@@ -12,7 +13,7 @@
         $refereeQueryData = dbQueryCheckReturn($refereeNameQuery);
         while ($row = $refereeQueryData->fetch_assoc()) {
             $ref = array(
-                "refereename" => $row["RefereeName"],
+                "refname" => $row["RefereeName"],
             );
             $finalDataSet[] = $ref;
         }
