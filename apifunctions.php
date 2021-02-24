@@ -2,8 +2,6 @@
     // functions here only used within the API to mimic a seperate server
     function dbQueryCheckReturn($sqlQuery) {
         require("dbconn.php");
-        $conn->set_charset('utf8mb4');
-        $sqlQuery = $conn->real_escape_string($sqlQuery);
         $queriedValue = $conn->query($sqlQuery);
         if (!$queriedValue) {
             echo $conn->error;
@@ -56,5 +54,17 @@
             }
         }
         return $limitQuery;
+    }
+
+    function getCurrentSeason() {
+        $currentSeasonURL = "http://tkilpatrick01.lampt.eeecs.qub.ac.uk/epl_api_v1/list?current_season";
+        require("../part_pages/api_auth.php");
+        $currentSeasonData = file_get_contents($currentSeasonURL, false, $context);
+        $currentSeasonArray = json_decode($currentSeasonData, true);
+
+        foreach($currentSeasonArray as $row){
+            $currentSeason = $row["currentSeason"];
+        }
+        return $currentSeason;
     }
 ?>
