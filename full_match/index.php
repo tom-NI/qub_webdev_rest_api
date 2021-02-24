@@ -29,8 +29,8 @@
             $stmt = $conn->prepare("SELECT MatchID FROM epl_matches WHERE MatchID = ?");
 
             // return one match from the users entry, escape htmlentities!
-            $singleMatchID = (int) htmlentities($_GET['onematch']);
-            $stmt -> bind_param("i", $singleMatchID);   
+            $singleMatchID = (int) htmlentities(trim($_GET['onematch']));
+            $stmt -> bind_param("i", $singleMatchID);
             $stmt -> execute();
             $stmt -> store_result();
     
@@ -58,7 +58,7 @@
             // if the user requests a full seasons matches
             // first check the season input and check it exists within the DB before proceeding (incase user can change on client)
             $seasonStmt = $conn->prepare("SELECT SeasonID FROM epl_seasons WHERE SeasonYears LIKE ? ");
-            $seasonYears = htmlentities($_GET['fullseason']);
+            $seasonYears = htmlentities(trim($_GET['fullseason']));
             if (checkSeasonRegex($seasonYears)) {
                 if (is_numeric($seasonYears)) {
                     $seasonStmt->bind_param("i", $seasonYears);
@@ -84,7 +84,7 @@
             }
         } elseif (isset($_GET['fixture'])) {
             // 1 fixture - get all records throughout history for stats analysis!
-            $fixtureValue = htmlentities($_GET['fixture']);
+            $fixtureValue = htmlentities(trim($_GET['fixture']));
 
             // split the value into two teams with the ~ delimiter and remove underscores
             trim($fixtureValue);
