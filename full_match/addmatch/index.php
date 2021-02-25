@@ -9,8 +9,8 @@
         $finalMatchDate = htmlentities(trim($_POST['date']));
         $finalKickOffTime = htmlentities(trim($_POST['time']));
         $finalRefereeName = htmlentities(trim($_POST['refereename']));
+
         $finalHomeClubName = htmlentities(trim($_POST['homeclub']));
-        $finalAwayClubName = htmlentities(trim($_POST['awayclub']));
         $finalHomeTeamHalfTimeGoals = htmlentities(trim($_POST['ht_halftimegoals']));
         $finalHomeTeamTotalGoals = htmlentities(trim($_POST['ht_totalgoals']));
         $finalHomeTeamShots = htmlentities(trim($_POST['ht_shots']));
@@ -20,6 +20,7 @@
         $finalHomeTeamYellowCards = htmlentities(trim($_POST['ht_yellowcards']));
         $finalHomeTeamRedCards = htmlentities(trim($_POST['ht_redcards']));
 
+        $finalAwayClubName = htmlentities(trim($_POST['awayclub']));
         $finalAwayTeamHalfTimeGoals = htmlentities(trim($_POST['at_halftimegoals']));
         $finalAwayTeamTotalGoals = htmlentities(trim($_POST['at_totalgoals']));
         $finalAwayTeamShots = htmlentities(trim($_POST['at_shots']));
