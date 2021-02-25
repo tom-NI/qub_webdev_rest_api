@@ -10,7 +10,8 @@
         $finalKickOffTime = htmlentities(trim($_POST['time']));
         $finalRefereeName = htmlentities(trim($_POST['refereename']));
 
-        $finalHomeClubName = htmlentities(trim($_POST['homeclub']));
+        $homeClubName = htmlentities(trim($_POST['homeclub']));
+        $finalHomeClubName = addUnderScores($homeClubName);
         $finalHomeTeamHalfTimeGoals = htmlentities(trim($_POST['ht_halftimegoals']));
         $finalHomeTeamTotalGoals = htmlentities(trim($_POST['ht_totalgoals']));
         $finalHomeTeamShots = htmlentities(trim($_POST['ht_shots']));
@@ -20,7 +21,8 @@
         $finalHomeTeamYellowCards = htmlentities(trim($_POST['ht_yellowcards']));
         $finalHomeTeamRedCards = htmlentities(trim($_POST['ht_redcards']));
 
-        $finalAwayClubName = htmlentities(trim($_POST['awayclub']));
+        $awayClubName = htmlentities(trim($_POST['awayclub']));
+        $finalAwayClubName = addUnderScores($awayClubName);
         $finalAwayTeamHalfTimeGoals = htmlentities(trim($_POST['at_halftimegoals']));
         $finalAwayTeamTotalGoals = htmlentities(trim($_POST['at_totalgoals']));
         $finalAwayTeamShots = htmlentities(trim($_POST['at_shots']));
@@ -163,8 +165,8 @@
                 $matchStatement->close();
                 $lastID = $conn->insert_id;
 
-                $homeStmt = $conn->prepare("INSERT INTO `epl_home_team_stats` (`HomeTeamStatID`, `HomeClubID`, `MatchID`, `HTTotalGoals`, `HTHalfTimeGoals`, `HTShots`, `HTShotsOnTarget`, `HTCorners`, `HTFouls`, `HTYellowCards`, `HTRedCards`) VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
-                $homeStmt -> bind_param("iiiiiiiiii",
+                $homeDataEntryStmt = $conn->prepare("INSERT INTO `epl_home_team_stats` (`HomeTeamStatID`, `HomeClubID`, `MatchID`, `HTTotalGoals`, `HTHalfTimeGoals`, `HTShots`, `HTShotsOnTarget`, `HTCorners`, `HTFouls`, `HTYellowCards`, `HTRedCards`) VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
+                $homeDataEntryStmt -> bind_param("iiiiiiiiii",
                             $homeClubID,
                             $lastID,
                             $finalHomeTeamTotalGoals,
@@ -175,15 +177,15 @@
                             $finalHomeTeamFouls,
                             $finalHomeTeamYellowCards,
                             $finalHomeTeamRedCards);
-                $homeStmt -> execute();
-                if (!$homeStmt) {
+                $homeDataEntryStmt -> execute();
+                if (!$homeDataEntryStmt) {
                     $stmtSuccessful = false;
                 }
-                $homeStmt->close();
+                $homeDataEntryStmt->close();
                 $last_id = $conn->insert_id;
 
-                $awayStmt = $conn->prepare("INSERT INTO `epl_away_team_stats` (`AwayTeamStatID`, `AwayClubID`, `MatchID`, `ATTotalGoals`, `ATHalfTimeGoals`, `ATShots`, `ATShotsOnTarget`, `ATCorners`, `ATFouls`, `ATYellowCards`, `ATRedCards`) VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
-                $awayStmt -> bind_param("iiiiiiiiii",
+                $awayDataEntryStmt = $conn->prepare("INSERT INTO `epl_away_team_stats` (`AwayTeamStatID`, `AwayClubID`, `MatchID`, `ATTotalGoals`, `ATHalfTimeGoals`, `ATShots`, `ATShotsOnTarget`, `ATCorners`, `ATFouls`, `ATYellowCards`, `ATRedCards`) VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
+                $awayDataEntryStmt -> bind_param("iiiiiiiiii",
                             $awayClubID,
                             $lastID,
                             $finalAwayTeamTotalGoals,
@@ -195,11 +197,11 @@
                             $finalAwayTeamYellowCards,
                             $finalAwayTeamRedCards
                         );
-                $awayStmt -> execute();
-                if (!$awayStmt) {
+                $awayDataEntryStmt -> execute();
+                if (!$awayDataEntryStmt) {
                     $stmtSuccessful = false;
                 }
-                $awayStmt->close();
+                $awayDataEntryStmt->close();
 
                 // if all three statements above didnt work, rollback for this connection
                 if (!$stmtSuccessful) {
