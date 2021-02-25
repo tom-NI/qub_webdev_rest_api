@@ -4,7 +4,6 @@
     require("../../apifunctions.php");
 
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        echo "inside the post part of the form now";
         // obtain all form values safely first;
         $finalSeasonName = htmlentities(trim($_POST['season']));
         $finalMatchDate = htmlentities(trim($_POST['date']));
@@ -178,47 +177,50 @@
                     $awayStmt -> fetch();
                 }
                 echo "<p>away club id $awayClubID</p>";
-
-                $stmt = $conn->prepare("
+                
+                $conn->autocommit(false);
+                $mainStatement = $conn->prepare("
                     START TRANSACTION;
-                        INSERT INTO epl_matches (`MatchID`, `SeasonID`, `MatchDate`, `KickOffTime`, `RefereeID`) VALUES (NULL, ?, ?, ?, ?);
+                        INSERT INTO `epl_matches` (`MatchID`, `SeasonID`, `MatchDate`, `KickOffTime`, `RefereeID`) VALUES (NULL, ?, ?, ?, ?);
                         SET @match_id = LAST_INSERT_ID();
 
-                        INSERT INTO epl_home_team_stats (`HomeTeamStatID`, `HomeClubID`, `MatchID`, `HTTotalGoals`, `HTHalfTimeGoals`, `HTShots`, `HTShotsOnTarget`, `HTCorners`, `HTFouls`, `HTYellowCards`, `HTRedCards`) VALUES (NULL, ?, @match_id, ?, ?, ?, ?, ?, ?, ?, ?);
+                        INSERT INTO `epl_home_team_stats` (`HomeTeamStatID`, `HomeClubID`, `MatchID`, `HTTotalGoals`, `HTHalfTimeGoals`, `HTShots`, `HTShotsOnTarget`, `HTCorners`, `HTFouls`, `HTYellowCards`, `HTRedCards`) VALUES (NULL, ?, @match_id, ?, ?, ?, ?, ?, ?, ?, ?);
             
-                        INSERT INTO epl_away_team_stats (`AwayTeamStatID`, `AwayClubID`, `MatchID`, `ATTotalGoals`, `ATHalfTimeGoals`, `ATShots`, `ATShotsOnTarget`, `ATCorners`, `ATFouls`, `ATYellowCards`, `ATRedCards`) VALUES (NULL, ?, @match_id, ?, ?, ?, ?, ?, ?, ?, ?);
-                    COMMIT; 
+                        INSERT INTO `epl_away_team_stats` (`AwayTeamStatID`, `AwayClubID`, `MatchID`, `ATTotalGoals`, `ATHalfTimeGoals`, `ATShots`, `ATShotsOnTarget`, `ATCorners`, `ATFouls`, `ATYellowCards`, `ATRedCards`) VALUES (NULL, ?, @match_id, ?, ?, ?, ?, ?, ?, ?, ?);
+                    COMMIT;
                 ");
 
-                print_r($stmt);
+                print_r($mainStatement);
 
-                $stmt -> bind_param("issiiiiiiiiiiiiiiiiiii",
-                            (int)$finalSeasonID,
+                $mainStatement -> bind_param("issiiiiiiiiiiiiiiiiiii",
+                            $finalSeasonID,
                             $finalMatchDate,
                             $finalKickOffTime,
-                            (int)$returnedRefereeID,
-                            (int)$homeClubID,
-                            (int)$finalHomeTeamTotalGoals,
-                            (int)$finalHomeTeamHalfTimeGoals,
-                            (int)$finalHomeTeamShots,
-                            (int)$finalHomeTeamShotsOnTarget,
-                            (int)$finalHomeTeamCorners,
-                            (int)$finalHomeTeamFouls,
-                            (int)$finalHomeTeamYellowCards,
-                            (int)$finalHomeTeamRedCards,
-                            (int)$awayClubID,
-                            (int)$finalAwayTeamTotalGoals,
-                            (int)$finalAwayTeamHalfTimeGoals,
-                            (int)$finalAwayTeamShots,
-                            (int)$finalAwayTeamShotsOnTarget,
-                            (int)$finalAwayTeamCorners,
-                            (int)$finalAwayTeamFouls,
-                            (int)$finalAwayTeamYellowCards,
-                            (int)$finalAwayTeamRedCards
+                            $returnedRefereeID,
+                            $homeClubID,
+                            $finalHomeTeamTotalGoals,
+                            $finalHomeTeamHalfTimeGoals,
+                            $finalHomeTeamShots,
+                            $finalHomeTeamShotsOnTarget,
+                            $finalHomeTeamCorners,
+                            $finalHomeTeamFouls,
+                            $finalHomeTeamYellowCards,
+                            $finalHomeTeamRedCards,
+                            $awayClubID,
+                            $finalAwayTeamTotalGoals,
+                            $finalAwayTeamHalfTimeGoals,
+                            $finalAwayTeamShots,
+                            $finalAwayTeamShotsOnTarget,
+                            $finalAwayTeamCorners,
+                            $finalAwayTeamFouls,
+                            $finalAwayTeamYellowCards,
+                            $finalAwayTeamRedCards
                         );
-                $stmt -> execute();
-
-                print_r($stmt);
+                $mainStatement -> execute();
+                $mainStatement->commit();
+                print_r($mainStatement);
+                $conn->autocommit(true);
+                $mainStatement->close();
         } else {
             // something wrong with the data quality, dont submit to DB
             $resultString;
