@@ -30,29 +30,6 @@
         $finalAwayTeamYellowCards = htmlentities(trim($_POST['at_yellowcards']));
         $finalAwayTeamRedCards = htmlentities(trim($_POST['at_redcards']));
 
-        debugOutputToConsole($finalSeasonName, true);
-        debugOutputToConsole($finalMatchDate, true);
-        debugOutputToConsole($finalKickOffTime, true);
-        debugOutputToConsole($finalRefereeName, true);
-        debugOutputToConsole($finalHomeClubName, true);
-        debugOutputToConsole($finalHomeTeamHalfTimeGoals, true);
-        debugOutputToConsole($finalHomeTeamTotalGoals, true);
-        debugOutputToConsole($finalHomeTeamShots, true);
-        debugOutputToConsole($finalHomeTeamShotsOnTarget, true);
-        debugOutputToConsole($finalHomeTeamCorners, true);
-        debugOutputToConsole($finalHomeTeamFouls, true);
-        debugOutputToConsole($finalHomeTeamYellowCards, true);
-        debugOutputToConsole($finalHomeTeamRedCards, true);
-        debugOutputToConsole($finalAwayClubName, true);
-        debugOutputToConsole($finalAwayTeamHalfTimeGoals, true);
-        debugOutputToConsole($finalAwayTeamTotalGoals, true);
-        debugOutputToConsole($finalAwayTeamShots, true);
-        debugOutputToConsole($finalAwayTeamShotsOnTarget, true);
-        debugOutputToConsole($finalAwayTeamCorners, true);
-        debugOutputToConsole($finalAwayTeamFouls, true);
-        debugOutputToConsole($finalAwayTeamYellowCards, true);
-        debugOutputToConsole($finalAwayTeamRedCards, true);
-
         // boolean values to run through to check all user inputs prior to accepting data
         $matchDateInThePast = false;
         $notTheSameTeams = false;
@@ -66,7 +43,6 @@
         $getSubmissionDateTime = date("Y-m-d H:i:s");
         if ($finalMatchDate > $getSubmissionDateTime) {
             $matchDateInThePast = false;
-            debugOutputToConsole("date not ok", true);
             $resultString += "Match date appears to be in the future, please enter historical records only. ";
             die();
         } else {
@@ -77,7 +53,6 @@
         $currentSeason = getCurrentSeason();
         if ($finalSeasonName != $currentSeason) {
             $currentSeasonSelected = false;
-            debugOutputToConsole("season NOT ok", true);
             $resultString += "Current Season has not been selected, historic seasons cannot have results added.  ";
         } else {
             $currentSeasonSelected = true;
@@ -87,7 +62,6 @@
         if ($finalHomeClubName == $finalAwayClubName) {
             $resultString += "Same club selected for both teams, please enter two different clubs.  ";
             $notTheSameTeams = false;
-            debugOutputToConsole("club names NOT ok", true);
         } else {
             $notTheSameTeams = true;
         }
@@ -96,7 +70,6 @@
         if (($finalHomeTeamShots < $finalHomeTeamShotsOnTarget) || ($finalAwayTeamShots < $finalHomeTeamShotsOnTarget)) {
             $resultString += "Shots cannot be greater than the shots on target, please reenter data.  ";
             $shotsAreGreaterThanShotsOT = false;
-            debugOutputToConsole("shots NOT ok", true);
         } else {
             $shotsAreGreaterThanShotsOT = true;
         }
@@ -105,7 +78,6 @@
         if (($finalHomeTeamHalfTimeGoals > $finalHomeTeamTotalGoals) || ($finalAwayTeamHalfTimeGoals > $finalAwayTeamTotalGoals)) {
             $resultString += "Half time goals cannot be greater than full time goals, please enter data again.  ";
             $halfTimeGoalsLessThanFullTime = false;
-            debugOutputToConsole("ht goals NOT ok", true);
         } else {
             $halfTimeGoalsLessThanFullTime = true;
         }
@@ -114,7 +86,6 @@
         if (($finalHomeTeamShotsOnTarget < $finalHomeTeamTotalGoals) || ($finalAwayTeamShotsOnTarget < $finalAwayTeamTotalGoals)) {
             $resultString += "Shots on Target cannot be less than goals scored!  Please check and enter data again.  ";
             $shotsOTisntLessThanGoals = false;
-            debugOutputToConsole("Shots OT NOT ok", true);
         } else {
             $shotsOTisntLessThanGoals = true;
         }
@@ -124,7 +95,6 @@
             $finalAwayTeamFouls < ($finalAwayTeamYellowCards + $finalAwayTeamRedCards)) {
                 $foulsLessThanTotalCards = false;
                 $resultString += "Fouls are less than yellow cards + red cards, please check data and enter again.";
-                debugOutputToConsole("fouls NOT ok", true);
         } else {
             $foulsLessThanTotalCards = true;
         }
@@ -145,8 +115,6 @@
                 if ($seasonStmt -> num_rows > 0) {
                     $seasonStmt -> bind_result($finalSeasonID);
                     $seasonStmt -> fetch();
-                } else {
-                    debugOutputToConsole("final season ID NOT ok", true);
                 }
 
                 // fetch refereeID from DB
@@ -165,8 +133,6 @@
                 if ($homeStmt -> num_rows > 0) {
                     $homeStmt -> bind_result($homeClubID);
                     $homeStmt -> fetch();
-                } else {
-                    debugOutputToConsole("final home club ID NOT ok", true);
                 }
 
                 // fetch away club ID from the DB
@@ -177,8 +143,6 @@
                 if ($awayStmt -> num_rows > 0) {
                     $awayStmt -> bind_result($awayClubID);
                     $awayStmt -> fetch();
-                } else {
-                    debugOutputToConsole("final away club ID NOT ok", true);
                 }
                 
                 // do an SQL transaction programmatically in PHP to accurately insert a single match into all relevent tables;
@@ -195,7 +159,6 @@
                 $matchStatement -> execute();
                 if (!$matchStatement) {
                     $stmtSuccessful = false;
-                    debugOutputToConsole($stmtSuccessful, true);
                 }
                 $matchStatement->close();
                 $lastID = $conn->insert_id;
@@ -215,7 +178,6 @@
                 $homeStmt -> execute();
                 if (!$homeStmt) {
                     $stmtSuccessful = false;
-                    debugOutputToConsole($stmtSuccessful, true);
                 }
                 $homeStmt->close();
                 $last_id = $conn->insert_id;
@@ -236,14 +198,12 @@
                 $awayStmt -> execute();
                 if (!$awayStmt) {
                     $stmtSuccessful = false;
-                    debugOutputToConsole($stmtSuccessful, true);
                 }
                 $awayStmt->close();
 
                 // if all three statements above didnt work, rollback for this connection
                 if (!$stmtSuccessful) {
                     $conn->rollback();
-                    debugOutputToConsole("Entry error, please try again", true);
                 }
                 $conn->autocommit(true);
                 $conn->close();
