@@ -19,7 +19,7 @@
 
     function addUnderScores($originalString) {
         $trimmedString = trim($originalString);
-        $regex = '/[ ]/i';
+        $regex = '/[ +]/i';
         $newString = preg_replace($regex, '_', $trimmedString);
         return $newString;
     }
@@ -66,5 +66,13 @@
             $currentSeason = $row["currentSeason"];
         }
         return $currentSeason;
+    }
+
+    function debugOutputToConsole($output, $withtags) {
+        $js_code = 'console.log(' . json_encode($output, JSON_HEX_TAG) . ');';
+        if ($withtags) {
+            $js_code = '<script>' . $js_code . '</script>';
+        }
+        echo $js_code;
     }
 ?>
