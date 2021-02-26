@@ -107,19 +107,51 @@
         }
     }
     
+    // todo need to text this for the ADD SEASON API call!
     function findNextSuggestedSeason() {
-        $currentSeason = getCurrentSeason();
-        $seasonYearsArray = explode("-", $currentSeason);
+        require("api_auth.php");
+        $allSeasonsAPIurl = "http://tkilpatrick01.lampt.eeecs.qub.ac.uk/epl_api_v1/list?all_seasons_list";
+        $allSeasonsAPIdata = file_get_contents($allSeasonsAPIurl);
+        $seasonList = json_decode($allSeasonsAPIdata, true);
+
+        if ($seasonList->num_rows > 0) {
+            $dbHighestSeasonEntered = $seasonList->fetch_row();
+        }
+
+        print_r($dbHighestSeasonEntered);
+
+        $seasonYearsArray = explode("-", $dbHighestSeasonEntered);
+        print_r($seasonYearsArray);
         $seasonEndYear = (int) $seasonYearsArray[1];
+        echo "<p>{$seasonEndYear}</p>";
         $nextSeasonEndYear = $seasonEndYear + 1;
-        return "{$seasonEndYear}-{$nextSeasonEndYear}";
+        echo "<p>{$nextSeasonEndYear}</p>";
+        // return "{$seasonEndYear}-{$nextSeasonEndYear}";
+        echo "{$seasonEndYear}-{$nextSeasonEndYear}";
     }
 
-    function debugOutputToConsole($output, $withtags) {
-        $js_code = 'console.log(' . json_encode($output, JSON_HEX_TAG) . ');';
-        if ($withtags) {
-            $js_code = '<script>' . $js_code . '</script>';
+    // take a users Referee Name entry and parse into a format required for the database
+    function parseClubName($clubEntry) {
+        // remove anything not a letter
+        $nonLetterRegex = '/[^A-Za-z ]/';
+        $cleanedClubName = preg_replace($nonLetterRegex, '', $clubEntry);
+
+        $spaceRegex = '/[ ]/';
+        if (preg_match($spaceRegex, $cleanedClubName)) {
+            // breakup into first and last names;
+            $wordsArray = explode(" ", $cleanedClubName);
+            $firstPartName = $wordsArray[0];
+            $secondPartName = $wordsArray[1];
+            $firstPartNameFirstLetter = strtoupper($firstPartName[0]);
+            $firstPartNameRemainder = strtolower(substr($firstPartName, 1, 40));
+            $secondPartNameFirstLetter = strtoupper($secondPartName[0]);
+            $secondPartNameRemainder = strtolower(substr($secondPartName, 1, 40));
+            $finalNameForDB = "{$firstPartNameFirstLetter}{$firstPartNameRemainder} {$secondPartNameFirstLetter}{$secondPartNameRemainder}";
+        } else {
+            $firstPartNameFirstLetter = strtoupper($cleanedClubName[0]);
+            $firstPartNameRemainder = strtolower(substr($cleanedClubName, 1, 40));
+            $finalNameForDB = "{$firstPartNameFirstLetter}{$firstPartNameRemainder}";
         }
-        echo $js_code;
+        return $finalNameForDB;
     }
 ?>
