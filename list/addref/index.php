@@ -1,5 +1,5 @@
 <?php
-    // TODO need to set session and check here! else kick out!
+    // TODO need to set auth keys here and check here! else kick out!
     require("../../apifunctions.php");
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['addnewref'])) {
         $userRefNameEntry = htmlentities(trim($_POST['refereename']));
@@ -14,17 +14,34 @@
             $finalNameForDB = parseRefereeName($userRefNameEntry);
 
             require("../../dbconn.php");
-            $stmt = $conn->prepare("INSERT INTO `epl_referees` (`RefereeID`, `RefereeName`) VALUES (NULL, ?)");
+            // check if the referee already exists, else add the referee
+            $stmt = $conn->prepare("SELECT * FROM `epl_referees` WHERE `RefereeName` = ?");
             $stmt -> bind_param("s", $finalNameForDB);
             $stmt -> execute();
+            $stmt -> store_result();
+            $stmt -> bind_result($refID, $refName);
             $stmt->fetch();
-            
-            if ($stmt) {
-                http_response_code(201);
+
+            if ($stmt->num_rows > 0) {
+                $stmt->close();
+                http_response_code(400);
+                echo "Referee already exists";
+                die();
             } else {
-                http_response_code(500);
-            }
-            $stmt->close();
+                // referee doesnt currently exist - 
+                $stmt->close();
+                $stmt = $conn->prepare("INSERT INTO `epl_referees` (`RefereeID`, `RefereeName`) VALUES (NULL, ?)");
+                $stmt -> bind_param("s", $finalNameForDB);
+                $stmt -> execute();
+                $stmt->fetch();
+                
+                if ($stmt) {
+                    http_response_code(201);
+                } else {
+                    http_response_code(500);
+                }
+                $stmt->close();
+            }            
         } else {
             http_response_code(400);
         }
