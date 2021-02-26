@@ -3,7 +3,7 @@
     require("../../dbconn.php");
     require("../../apifunctions.php");
 
-    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['addnewresult'])) {
         // obtain all form values safely first;
         $finalSeasonName = htmlentities(trim($_POST['season']));
         $finalMatchDate = htmlentities(trim($_POST['date']));
@@ -163,12 +163,12 @@
                     $stmtSuccessful = false;
                 }
                 $matchStatement->close();
-                $lastID = $conn->insert_id;
+                $lastEnteredMatchID = $conn->insert_id;
 
                 $homeDataEntryStmt = $conn->prepare("INSERT INTO `epl_home_team_stats` (`HomeTeamStatID`, `HomeClubID`, `MatchID`, `HTTotalGoals`, `HTHalfTimeGoals`, `HTShots`, `HTShotsOnTarget`, `HTCorners`, `HTFouls`, `HTYellowCards`, `HTRedCards`) VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
                 $homeDataEntryStmt -> bind_param("iiiiiiiiii",
                             $homeClubID,
-                            $lastID,
+                            $lastEnteredMatchID,
                             $finalHomeTeamTotalGoals,
                             $finalHomeTeamHalfTimeGoals,
                             $finalHomeTeamShots,
@@ -182,12 +182,11 @@
                     $stmtSuccessful = false;
                 }
                 $homeDataEntryStmt->close();
-                $last_id = $conn->insert_id;
 
                 $awayDataEntryStmt = $conn->prepare("INSERT INTO `epl_away_team_stats` (`AwayTeamStatID`, `AwayClubID`, `MatchID`, `ATTotalGoals`, `ATHalfTimeGoals`, `ATShots`, `ATShotsOnTarget`, `ATCorners`, `ATFouls`, `ATYellowCards`, `ATRedCards`) VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
                 $awayDataEntryStmt -> bind_param("iiiiiiiiii",
                             $awayClubID,
-                            $lastID,
+                            $lastEnteredMatchID,
                             $finalAwayTeamTotalGoals,
                             $finalAwayTeamHalfTimeGoals,
                             $finalAwayTeamShots,
