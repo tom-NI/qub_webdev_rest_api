@@ -11,6 +11,34 @@
         }
     }
 
+    // insert data and if it fails, print error message
+    function dbQueryAndCheck($sqlQuery) {
+        require("dbconn.php");
+        $queryValue = $conn->query($sqlQuery);
+        if (!$queryValue) {
+            echo $conn->error;
+            die();
+        }
+    }
+
+    // take a users Referee Name entry and parse into a format required for the database
+    function parseRefereeName($userRefNameEntry) {
+        // remove anything not a letter
+        $nonLetterRegex = '/[^A-Za-z- .]/';
+        $cleanedRefNameEntry = preg_replace($nonLetterRegex, '', $userRefNameEntry);
+    
+        // breakup into first and last names;
+        $namesArray = explode(" ", $cleanedRefNameEntry);
+        $firstName = $namesArray[0];
+        $secondName = $namesArray[1];
+        $firstInitial = strtoupper($firstName[0]);
+        $secondNameFirstInitial = strtoupper($secondName[0]);
+        $secondNameRemainder = strtolower(substr($secondName, 1, 40));
+    
+        $finalNameForDB = "{$firstInitial}. {$secondNameFirstInitial}{$secondNameRemainder}";
+        return $finalNameForDB;
+    }
+
     function removeUnderScores($originalString) {
         $regex = '/[ ]/i';
         $newString = preg_replace($regex, ' ', $originalString);
