@@ -6,7 +6,10 @@
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['addnewclub'])) {
         $newClubName = htmlentities(trim($_POST['newclubname']));
         $newClubLogoURL = htmlentities(trim($_POST['newcluburl']));
-
+        
+        // remove extraneous characters and tidy up the club name
+        $finalClubName = parseClubName($newClubName);
+        
         // check DB to see if the club name already exists first
         require("../../api_auth.php");
         $allClubsURL = "http://tkilpatrick01.lampt.eeecs.qub.ac.uk/epl_api_v1/list?all_clubs";
@@ -14,7 +17,7 @@
         $allClubsList = json_decode($allCLubsAPIData, true);
 
         foreach ($allClubsList as $existingClub) {
-            if ($newClubName == $existingClub['club']) {
+            if ($finalClubName == $existingClub['club']) {
                 http_response_code(400);
                 // todo review all echo statements from an API
                 echo "That Club already exists";
@@ -22,7 +25,7 @@
             }
         }
         $stmt = $conn->prepare("INSERT INTO `epl_clubs` (`ClubID`, `ClubName`, `ClubLogoURL`) VALUES (NULL, ?, ?);");
-        $stmt -> bind_param("ss", $newClubName, $newClubLogoURL);
+        $stmt -> bind_param("ss", $finalClubName, $newClubLogoURL);
         $stmt -> execute();
         $stmt -> fetch();
         if ($stmt) {
