@@ -3,8 +3,7 @@
 
     // API has a seperate functions file to mimic a true seperate server!
     require("../apifunctions.php");
-
-    require("../part_authenticate.php"); {
+    // require("../part_authenticate.php"); {
     $finalDataSet = array();
 
     if (isset($_GET['ref_list'])) {
@@ -70,11 +69,21 @@
             );
             $finalDataSet[] = $season;
         }
+    } elseif (isset($_GET['all_clubs'])) {
+        // query all clubs from the database
+        $allCurrentClubsQuery = "SELECT ClubName FROM `epl_clubs` ORDER BY ClubName ASC";
+        $allCurrentClubsData = dbQueryCheckReturn($allCurrentClubsQuery);
+        while ($row = $allCurrentClubsData->fetch_assoc()) {
+            $club = array(
+                "club" => $row["ClubName"],
+            );
+            $finalDataSet[] = $club;
+        }
     } else {
         http_response_code(400);
     }
 
     // encode the final data set to JSON
     echo json_encode($finalDataSet);
-    }
+    // }
 ?>
