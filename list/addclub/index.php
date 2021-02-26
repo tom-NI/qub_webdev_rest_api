@@ -21,30 +21,18 @@
                 die();
             }
         }
-
-        // TODO;
-        // check club logo URL is a valid image (png or jpg), otherwise reject the submission entirely
-        // $submittedImageType = exif_imagetype($newClubLogoURL);
-        // echo $submittedImageType;
-
-        // if ($submittedImageType != 3 || $submittedImageType != 2) {
-        //     http_response_code(400);
-        //     echo "URL links to an unsupported image file type, please try again with a .png or .jpeg file";
-        //     die();
-        // } else {
-            $stmt = $conn->prepare("INSERT INTO `epl_clubs` (`ClubID`, `ClubName`, `ClubLogoURL`) VALUES (NULL, ?, ?);");
-            $stmt -> bind_param("ss", $newClubName, $newClubLogoURL);
-            $stmt -> execute();
-            $stmt -> fetch();
-            if ($stmt) {
-                http_response_code(201);
-                echo "Entry Successful";
-            } else {
-                http_response_code(500);
-                echo "Something went wrong, please try again later";
-            }
-            $stmt -> close();
-        // }
+        $stmt = $conn->prepare("INSERT INTO `epl_clubs` (`ClubID`, `ClubName`, `ClubLogoURL`) VALUES (NULL, ?, ?);");
+        $stmt -> bind_param("ss", $newClubName, $newClubLogoURL);
+        $stmt -> execute();
+        $stmt -> fetch();
+        if ($stmt) {
+            http_response_code(201);
+            echo "Entry Successful";
+        } else {
+            http_response_code(500);
+            echo "Something went wrong, please try again later";
+        }
+        $stmt -> close();
     } else {
         http_response_code(400);
         echo "Unknown request, please try again";
