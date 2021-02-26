@@ -95,6 +95,25 @@
         }
         return $currentSeason;
     }
+    
+    function checkSeasonYearOrder($fullSeasonEntryToCheck) {
+        $seasonEntryArray = explode("-", $fullSeasonEntryToCheck);
+        $seasonStartYear = (int) $seasonEntryArray[0];
+        $seasonEndYear = (int) $seasonEntryArray[1];
+        if (($seasonStartYear >= $seasonEndYear) || ($seasonEndYear - $seasonStartYear > 1)) {
+            return false;
+        } else {
+            return true;
+        }
+    }
+    
+    function findNextSuggestedSeason() {
+        $currentSeason = getCurrentSeason();
+        $seasonYearsArray = explode("-", $currentSeason);
+        $seasonEndYear = (int) $seasonYearsArray[1];
+        $nextSeasonEndYear = $seasonEndYear + 1;
+        return "{$seasonEndYear}-{$nextSeasonEndYear}";
+    }
 
     function debugOutputToConsole($output, $withtags) {
         $js_code = 'console.log(' . json_encode($output, JSON_HEX_TAG) . ');';
