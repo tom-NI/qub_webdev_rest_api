@@ -12,8 +12,8 @@
         
         if (checkSeasonRegex($userSeasonEntry) && $seasonYearsCorrectOrder) {
             // check if the season already exists before adding it twice;
-            include("../../api_auth.php");
-            $allSeasonsAPIurl = "http://tkilpatrick01.lampt.eeecs.qub.ac.uk/epl_api_v1/?list=all_seasons_list";
+            require("../../api_auth.php");
+            $allSeasonsAPIurl = "http://tkilpatrick01.lampt.eeecs.qub.ac.uk/epl_api_v1/list?all_seasons_list";
             $allSeasonsAPIdata = file_get_contents($allSeasonsAPIurl);
             $fixtureList = json_decode($allSeasonsAPIdata, true);
 
@@ -27,6 +27,7 @@
             }
             // get the suggested next season to add!
             $suggestedNextSeason = findNextSuggestedSeason();
+            echo "<p>{$suggestedNextSeason}</p>";
 
             if ($userSeasonEntry != $suggestedNextSeason) {
                 http_response_code(400);
