@@ -154,4 +154,12 @@
         }
         return $finalNameForDB;
     }
+
+    function apiErrorReply($replyString) {
+        $errorReply = array(
+            "error_message" => "$replyString"
+        );
+        $errorDataReply[] = $errorReply;
+        echo json_encode($errorDataReply);
+    }
 ?>
