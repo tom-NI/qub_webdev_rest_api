@@ -3,6 +3,7 @@
 
     // API has a seperate functions file to mimic a true seperate server!
     require("../apifunctions.php");
+    require("../dbconn.php");
     // require("../part_authenticate.php"); {
     $finalDataSet = array();
 
@@ -39,19 +40,28 @@
             $finalDataSet[] = $season;
         }
     } elseif (isset($_GET['current_season_clubs'])) {
-        // query all current clubs from current season
-        $currentSeasonIDquery = "SELECT SeasonID FROM `epl_seasons` ORDER BY SeasonID DESC LIMIT 1";
-        $currentSeasonIDData = dbQueryCheckReturn($currentSeasonIDquery);
-        while ($row = $currentSeasonIDData->fetch_assoc()) {
-            $seasonID = $row["SeasonID"];
+        // get current season first (callback to this API)
+        $seasonURL = "http://tkilpatrick01.lampt.eeecs.qub.ac.uk/epl_api_v1/list?current_season";
+        $currentSeasonData = file_get_contents($seasonURL);
+        $currentSeasonList = json_decode($currentSeasonData, true);
+
+        foreach($currentSeasonList as $row) {
+            $currentSeason = $row["currentSeason"];
         }
+
+        $stmt = $conn->prepare("SELECT SeasonID FROM `epl_seasons` WHERE SeasonYears = ? ");
+        $stmt -> bind_param("s", $currentSeason);
+        $stmt -> execute();
+        $stmt -> store_result();
+        $stmt -> bind_result($SeasonID);
+        $stmt -> fetch();
         
         $clubNameQuery = "SELECT DISTINCT epl_clubs.ClubName FROM `epl_clubs` 
         INNER JOIN epl_home_team_stats ON epl_home_team_stats.HomeClubID = epl_clubs.ClubID
         INNER JOIN epl_away_team_stats ON epl_away_team_stats.AwayClubID = epl_clubs.ClubID
         INNER JOIN epl_matches ON epl_matches.MatchID = epl_home_team_stats.MatchID
         INNER JOIN epl_seasons ON epl_matches.SeasonID = epl_seasons.SeasonID
-        WHERE epl_seasons.SeasonID = {$seasonID} ORDER BY ClubName ASC;";
+        WHERE epl_seasons.SeasonID = {$SeasonID} ORDER BY ClubName ASC;";
 
         $clubQueryData = dbQueryCheckReturn($clubNameQuery);
         while ($row = $clubQueryData->fetch_assoc()) {
