@@ -91,6 +91,9 @@
         }
     } else {
         http_response_code(400);
+        $replyMessage = "Unknown Request";
+        apiReply($replyMessage);
+        die();
     }
 
     // encode the final data set to JSON
