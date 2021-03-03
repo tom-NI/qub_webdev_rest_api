@@ -155,11 +155,11 @@
         return $finalNameForDB;
     }
 
-    function apiErrorReply($replyString) {
-        $errorReply = array(
-            "error_message" => "$replyString"
+    function apiReply($replyString) {
+        $reply = array(
+            "reply_message" => "$replyString"
         );
-        $errorDataReply[] = $errorReply;
-        echo json_encode($errorDataReply);
+        $replyArray[] = $reply;
+        echo json_encode($replyArray);
     }
 ?>
