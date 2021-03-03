@@ -54,7 +54,7 @@
             } else {
                 http_response_code(404);
                 $errorMessage = "Match ID doesnt exist, please try again.";
-                apiErrorReply($errorMessage);
+                apiReply($errorMessage);
                 die();
             }
         } elseif (isset($_GET['fullseason'])) {
@@ -75,7 +75,7 @@
                 if (($seasonStmt->num_rows() < 1) || ($seasonStmt->num_rows() > 1)) {
                     http_response_code(400);
                     $errorMessage = "Season doesnt exist or is ambiguous, please try again.";
-                    apiErrorReply($errorMessage);
+                    apiReply($errorMessage);
                     die();
                 } else {
                     $seasonStmt->bind_result($seasonID);
@@ -86,7 +86,7 @@
             } else {
                 http_response_code(400);
                 $errorMessage = "Requested season format is unrecognised, please try again using the format YYYY-YYYY.";
-                apiErrorReply($errorMessage);
+                apiReply($errorMessage);
                 die();
             }
         } elseif (isset($_GET['fixture'])) {
@@ -137,14 +137,14 @@
                 } else {
                     http_response_code(404);
                     $errorMessage = "One of those clubs cannot be identified, please reenter and try again.";
-                    apiErrorReply($errorMessage);
+                    apiReply($errorMessage);
                     die();
                 }
             }
         } else {
             http_response_code(400);
             $errorMessage = "Query key not recognised, please enter a query key and value and try again.";
-            apiErrorReply($errorMessage);
+            apiReply($errorMessage);
             die();
         }
 
