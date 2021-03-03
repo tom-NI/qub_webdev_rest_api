@@ -27,6 +27,8 @@
 
                 if (($seasonStmt->num_rows() < 1) || ($seasonStmt->num_rows() > 1)) {
                     http_response_code(404);
+                    $replyMessage = "Ambiguous Season, please reenter season years";
+                    apiReply($replyMessage);
                     die();
                 } else {
                     $seasonStmt->bind_result($seasonID);
