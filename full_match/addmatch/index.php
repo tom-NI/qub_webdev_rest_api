@@ -118,6 +118,7 @@
                     $seasonStmt -> bind_result($finalSeasonID);
                     $seasonStmt -> fetch();
                 }
+                $seasonStmt -> close();
 
                 // fetch refereeID from DB
                 $refStmt = $conn->prepare("SELECT RefereeID FROM epl_referees WHERE RefereeName = ? ");
@@ -126,6 +127,7 @@
                 $refStmt -> store_result();
                 $refStmt -> bind_result($returnedRefereeID);
                 $refStmt -> fetch();
+                $refStmt -> close();
 
                 // fetch home club ID from the DB
                 $homeStmt = $conn->prepare("SELECT ClubID FROM epl_clubs WHERE ClubName = ? ");
@@ -136,6 +138,7 @@
                     $homeStmt -> bind_result($homeClubID);
                     $homeStmt -> fetch();
                 }
+                $homeStmt -> close();
 
                 // fetch away club ID from the DB
                 $awayStmt = $conn->prepare("SELECT ClubID FROM epl_clubs WHERE ClubName = ? ");
@@ -146,11 +149,11 @@
                     $awayStmt -> bind_result($awayClubID);
                     $awayStmt -> fetch();
                 }
+                $awayStmt -> close();
                 
                 // do an SQL transaction programmatically in PHP to accurately insert a single match into all relevent tables;
                 $stmtSuccessful = true;
                 $conn->autocommit(false);
-
                 // setup one statement per table, track if entry if successful for each or not
                 $matchStatement = $conn->prepare("INSERT INTO `epl_matches` (`MatchID`, `SeasonID`, `MatchDate`, `KickOffTime`, `RefereeID`) VALUES (NULL, ?, ?, ?, ?);");
                 $matchStatement -> bind_param("issi",
@@ -161,9 +164,15 @@
                 $matchStatement -> execute();
                 if (!$matchStatement) {
                     $stmtSuccessful = false;
+                    $conn->rollback();
+                    http_response_code(500);
+                    $replyMessage = "Theres a problem with entering Match data";
+                    apiReply($replyMessage);
+                    die();
+                } else {
+                    $lastEnteredMatchID = $conn->insert_id;
                 }
                 $matchStatement->close();
-                $lastEnteredMatchID = $conn->insert_id;
 
                 $homeDataEntryStmt = $conn->prepare("INSERT INTO `epl_home_team_stats` (`HomeTeamStatID`, `HomeClubID`, `MatchID`, `HTTotalGoals`, `HTHalfTimeGoals`, `HTShots`, `HTShotsOnTarget`, `HTCorners`, `HTFouls`, `HTYellowCards`, `HTRedCards`) VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
                 $homeDataEntryStmt -> bind_param("iiiiiiiiii",
@@ -180,6 +189,13 @@
                 $homeDataEntryStmt -> execute();
                 if (!$homeDataEntryStmt) {
                     $stmtSuccessful = false;
+                    http_response_code(500);
+                    $conn->rollback();
+                    $replyMessage = "theres a problem with entering into the home table";
+                    apiReply($replyMessage);
+                    die();
+                } else {
+                    $lastEnteredHomeID = $conn->insert_id;
                 }
                 $homeDataEntryStmt->close();
 
@@ -194,17 +210,28 @@
                             $finalAwayTeamCorners,
                             $finalAwayTeamFouls,
                             $finalAwayTeamYellowCards,
-                            $finalAwayTeamRedCards
-                        );
+                            $finalAwayTeamRedCards);
                 $awayDataEntryStmt -> execute();
                 if (!$awayDataEntryStmt) {
                     $stmtSuccessful = false;
+                    http_response_code(500);
+                    $conn->rollback();
+                    $replyMessage = "Theres a problem with entering into the away team table";
+                    apiReply($replyMessage);
+                    die();
+                } else {
+                    $lastEnteredawayID = $conn->insert_id;
                 }
                 $awayDataEntryStmt->close();
 
                 // if all three statements above didnt work, rollback for this connection
                 if (!$stmtSuccessful) {
                     $conn->rollback();
+                } else {
+                    http_response_code(201);
+                    $replyMessage = "Match was successfully input";
+                    apiReply($replyMessage);
+                    die();
                 }
                 $conn->autocommit(true);
                 $conn->close();
@@ -213,5 +240,10 @@
             $resultString;
             die();
         }
+    } else {
+        http_response_code(400);
+        $replyMessage = "Unknown Request";
+        apiReply($replyMessage);
+        die();
     }
 ?>
