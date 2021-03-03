@@ -13,6 +13,19 @@
                 $userEmail = htmlentities(trim($_POST['email']));
                 $hashedPassword = htmlentities(trim($_POST['hashedpassword']));
 
+                $stmt = $conn->prepare("SELECT `AdminEmail` FROM `epl_admins` WHERE AdminEmail = ?");
+                $stmt -> bind_param("s", $userEmail);
+                $stmt -> execute();
+                $stmt -> store_result();
+
+                if ($stmt->num_rows() > 0) {
+                    http_response_code(400);
+                    $replyMessage = "That user has already registered, please log in";
+                    apiReply($replyMessage);
+                    die();
+                }
+                $stmt -> close();
+
                 if (strlen($userFirstName) > 3 && strlen($userSurname) > 3 
                     && strlen($userEmail) > 3 && strlen($hashedPassword) > 3) {
 
