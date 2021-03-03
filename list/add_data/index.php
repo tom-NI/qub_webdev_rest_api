@@ -65,7 +65,6 @@
             }
             // get the suggested next season to add!
             $suggestedNextSeason = findNextSuggestedSeason();
-            echo "<p>{$suggestedNextSeason}</p>";
 
             if ($userSeasonEntry != $suggestedNextSeason) {
                 http_response_code(400);
@@ -114,7 +113,7 @@
             $stmt -> execute();
             $stmt -> store_result();
             $stmt -> bind_result($refID, $refName);
-            $stmt->fetch();
+            $stmt -> fetch();
 
             if ($stmt->num_rows > 0) {
                 $stmt->close();
