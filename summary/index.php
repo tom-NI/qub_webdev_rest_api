@@ -6,7 +6,6 @@
     require("../dbconn.php");
     require("../part_authenticate.php"); {
         $finalDataSet = array();
-        
         $seasonID = null;
         $finalCount = null;
 
@@ -36,10 +35,13 @@
                 }
             } else {
                 http_response_code(400);
+                $errorMessage = "Requested season format is unrecognised, please try again using the format YYYY-YYYY.";
+                apiReply($errorMessage);
                 die();
             }
             $matchSummaryQuery = "{$mainQuery} {$seasonQuery} {$orderByQuery}";
         } 
+        
         if (isset($_GET['usersearch'])) {
             // wildcard search for main search bar!
             $userSearchStmt = $conn->prepare("SELECT ClubID FROM epl_clubs WHERE ClubName LIKE ? ");
@@ -51,21 +53,89 @@
             // only proceed if the club exists in the database
             if ($userSearchStmt->num_rows > 1) {
                 http_response_code(400);
-            } elseif (mysqli_num_rows($checkUsersData) > 0) {
+                $errorMessage = "That club cannot be identified, please enter a new club and try again";
+                apiReply($errorMessage);
+                die();
+            } elseif ($userSearchStmt->num_rows > 0) {
                 $userSearchStmt -> bind_result($usersSearchedClubID);
                 $userSearchStmt -> fetch();
 
-                if (!isset($_GET['season'])) {
-                    $userClubQuery = "WHERE HomeClubID = {$usersSearchedClubID} OR AwayClubId = {$usersSearchedClubID}";
-                    $matchSummaryQuery = "{$mainQuery} {$userClubQuery} {$orderByQuery}";
-                } else {
-                    $userClubQuery = "AND (HomeClubID = {$usersSearchedClubID} OR AwayClubID = {$usersSearchedClubID})";
-                    $matchSummaryQuery = "{$mainQuery} {$seasonQuery} {$userClubQuery} {$orderByQuery}";
+                if (isset($_GET['filter'])) {
+                    $queryCount = 0;
+                    // all the options for the filter panel
+
+                    // post the club and set the select to be the posted club
+                    if (isset($_GET['club_checkbox'])) {
+                        $queryCount++;
+                        if (isset($_GET['home_checkbox'])) {
+                            $queryCount++;
+                            
+                        } elseif (isset($_GET['away_checkbox'])) {
+                            $queryCount++;
+                
+                        } else {
+
+                        }
+
+                        // check num_rows
+                        if () {
+
+                        } else {
+                            http_response_code(404);
+                            // etc
+                        }
+                    }
+
+                    // season filter
+                    if (isset($_GET['filter_season_checkbox'])) {
+                        $queryCount++;
+                        $userClubQuery = "WHERE HomeClubID = {$usersSearchedClubID} OR AwayClubId = {$usersSearchedClubID}";
+                        $matchSummaryQuery = "{$mainQuery} {$userClubQuery} {$orderByQuery}";
+                    } else {
+                        $userClubQuery = "AND (HomeClubID = {$usersSearchedClubID} OR AwayClubID = {$usersSearchedClubID})";
+                        $matchSummaryQuery = "{$mainQuery} {$seasonQuery} {$userClubQuery} {$orderByQuery}";
+                    }
+            
+                    // 
+                    if (isset($_GET['fixture_checkbox'])) {
+                        $queryCount++;
+                        
+                    }
+
+                    if (isset($_GET['result_checkbox'])) {
+                        $queryCount++;
+                        
+                    }
+            
+                    if (isset($_GET['margin_checkbox'])) {
+                        $queryCount++;
+                        
+                    }
+            
+                    if (isset($_GET['filter_month_search'])) {
+                        $queryCount++;
+                        
+                    }
+
+                    if (isset($_GET['day_checkbox'])) {
+                        $queryCount++;
+                        
+                    }
+
+                    if (isset($_GET['filter_month_search'])) {
+                        $queryCount++;
+                        
+                    }
+
                 }
             } else {
                 http_response_code(400);
+                $errorMessage = "That club cannot be identified, please enter a new club and try again";
+                apiReply($errorMessage);
+                die();
             }
         }
+
         if (isset($_GET['count'])) {
             $limitQuery = queryPagination();
             $matchSummaryQuery = "{$matchSummaryQuery} {$limitQuery}";
@@ -113,5 +183,5 @@
     // encode the final data set to JSON
     echo json_encode($finalDataSet);
     }
-    
+
 ?>
