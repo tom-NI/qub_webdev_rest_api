@@ -102,12 +102,12 @@
 
             if (($homeTeamNameSearch != null) && (strlen($homeTeamNameSearch) > 0) 
                 && ($awayTeamNameSearch != null) && (strlen($awayTeamNameSearch) > 0)) {
-                $homeStmt = $conn->prepare("SELECT ClubID FROM `epl_clubs` WHERE ClubName LIKE '%?%';");
+                $homeStmt = $conn->prepare("SELECT ClubID FROM `epl_clubs` WHERE ClubName LIKE ? ;");
                 $homeStmt->bind_param("s", $homeTeamNameSearch);
                 $homeStmt->execute();
                 $homeStmt->store_result();
 
-                $awayStmt = $conn->prepare("SELECT ClubID FROM `epl_clubs` WHERE ClubName LIKE '%?%';");
+                $awayStmt = $conn->prepare("SELECT ClubID FROM `epl_clubs` WHERE ClubName LIKE ? ;");
                 $awayStmt->bind_param("s", $awayTeamNameSearch);
                 $awayStmt->execute();
                 $awayStmt->store_result();
