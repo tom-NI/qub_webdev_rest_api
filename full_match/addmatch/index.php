@@ -1,5 +1,6 @@
 <?php
     // todo check key auth
+    header('Content-Type: application/json');
     require("../../dbconn.php");
     require("../../apifunctions.php");
 
@@ -45,8 +46,7 @@
         $getSubmissionDateTime = date("Y-m-d H:i:s");
         if ($finalMatchDate > $getSubmissionDateTime) {
             $matchDateInThePast = false;
-            $resultString += "Match date appears to be in the future, please enter historical records only. ";
-            die();
+            $resultString .= "Match date appears to be in the future, please enter historical records only. ";
         } else {
             $matchDateInThePast = true;
         }
@@ -55,14 +55,14 @@
         $currentSeason = getCurrentSeason();
         if ($finalSeasonName != $currentSeason) {
             $currentSeasonSelected = false;
-            $resultString += "Current Season has not been selected, historic seasons cannot have results added.  ";
+            $resultString .= "Current Season has not been selected, historic seasons cannot have results added. ";
         } else {
             $currentSeasonSelected = true;
         }
 
         // Teams cannot be the same team - derived from the same list!
-        if ($finalHomeClubName == $finalAwayClubName) {
-            $resultString += "Same club selected for both teams, please enter two different clubs.  ";
+        if ($finalHomeClubName === $finalAwayClubName) {
+            $resultString .= "Same club selected for both teams, please enter two different clubs. ";
             $notTheSameTeams = false;
         } else {
             $notTheSameTeams = true;
@@ -70,7 +70,7 @@
         
         // Shots on target cannot be > shots
         if (($finalHomeTeamShots < $finalHomeTeamShotsOnTarget) || ($finalAwayTeamShots < $finalHomeTeamShotsOnTarget)) {
-            $resultString += "Shots cannot be greater than the shots on target, please reenter data.  ";
+            $resultString .= "Shots cannot be greater than the shots on target, please reenter data.  ";
             $shotsAreGreaterThanShotsOT = false;
         } else {
             $shotsAreGreaterThanShotsOT = true;
@@ -78,7 +78,7 @@
 
         // Half time goals cannot be > full time goals
         if (($finalHomeTeamHalfTimeGoals > $finalHomeTeamTotalGoals) || ($finalAwayTeamHalfTimeGoals > $finalAwayTeamTotalGoals)) {
-            $resultString += "Half time goals cannot be greater than full time goals, please enter data again.  ";
+            $resultString .= "Half time goals cannot be greater than full time goals, please enter data again.  ";
             $halfTimeGoalsLessThanFullTime = false;
         } else {
             $halfTimeGoalsLessThanFullTime = true;
@@ -86,7 +86,7 @@
 
         // Score cannot be less than total shots on target!
         if (($finalHomeTeamShotsOnTarget < $finalHomeTeamTotalGoals) || ($finalAwayTeamShotsOnTarget < $finalAwayTeamTotalGoals)) {
-            $resultString += "Shots on Target cannot be less than goals scored!  Please check and enter data again.  ";
+            $resultString .= "Shots on Target cannot be less than goals scored!  Please check and enter data again.  ";
             $shotsOTisntLessThanGoals = false;
         } else {
             $shotsOTisntLessThanGoals = true;
@@ -96,7 +96,7 @@
         if ($finalHomeTeamFouls < ($finalHomeTeamYellowCards + $finalHomeTeamRedCards) ||
             $finalAwayTeamFouls < ($finalAwayTeamYellowCards + $finalAwayTeamRedCards)) {
                 $foulsLessThanTotalCards = false;
-                $resultString += "Fouls are less than yellow cards + red cards, please check data and enter again.";
+                $resultString .= "Fouls are less than yellow cards + red cards, please check data and enter again.";
         } else {
             $foulsLessThanTotalCards = true;
         }
@@ -118,7 +118,6 @@
                     $seasonStmt -> bind_result($finalSeasonID);
                     $seasonStmt -> fetch();
                 }
-                $seasonStmt -> close();
 
                 // fetch refereeID from DB
                 $refStmt = $conn->prepare("SELECT RefereeID FROM epl_referees WHERE RefereeName = ? ");
@@ -127,7 +126,6 @@
                 $refStmt -> store_result();
                 $refStmt -> bind_result($returnedRefereeID);
                 $refStmt -> fetch();
-                $refStmt -> close();
 
                 // fetch home club ID from the DB
                 $homeStmt = $conn->prepare("SELECT ClubID FROM epl_clubs WHERE ClubName = ? ");
@@ -138,7 +136,6 @@
                     $homeStmt -> bind_result($homeClubID);
                     $homeStmt -> fetch();
                 }
-                $homeStmt -> close();
 
                 // fetch away club ID from the DB
                 $awayStmt = $conn->prepare("SELECT ClubID FROM epl_clubs WHERE ClubName = ? ");
@@ -149,10 +146,8 @@
                     $awayStmt -> bind_result($awayClubID);
                     $awayStmt -> fetch();
                 }
-                $awayStmt -> close();
-                
+
                 // do an SQL transaction programmatically in PHP to accurately insert a single match into all relevent tables;
-                $stmtSuccessful = true;
                 $conn->autocommit(false);
                 // setup one statement per table, track if entry if successful for each or not
                 $matchStatement = $conn->prepare("INSERT INTO `epl_matches` (`MatchID`, `SeasonID`, `MatchDate`, `KickOffTime`, `RefereeID`) VALUES (NULL, ?, ?, ?, ?);");
@@ -162,17 +157,13 @@
                             $finalKickOffTime,
                             $returnedRefereeID);
                 $matchStatement -> execute();
-                if (!$matchStatement) {
-                    $stmtSuccessful = false;
-                    $conn->rollback();
+                if ($matchStatement === false) {
                     http_response_code(500);
                     $replyMessage = "Theres a problem with entering Match data";
                     apiReply($replyMessage);
-                    die();
                 } else {
                     $lastEnteredMatchID = $conn->insert_id;
                 }
-                $matchStatement->close();
 
                 $homeDataEntryStmt = $conn->prepare("INSERT INTO `epl_home_team_stats` (`HomeTeamStatID`, `HomeClubID`, `MatchID`, `HTTotalGoals`, `HTHalfTimeGoals`, `HTShots`, `HTShotsOnTarget`, `HTCorners`, `HTFouls`, `HTYellowCards`, `HTRedCards`) VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
                 $homeDataEntryStmt -> bind_param("iiiiiiiiii",
@@ -187,17 +178,15 @@
                             $finalHomeTeamYellowCards,
                             $finalHomeTeamRedCards);
                 $homeDataEntryStmt -> execute();
-                if (!$homeDataEntryStmt) {
-                    $stmtSuccessful = false;
+
+                if ($homeDataEntryStmt === false) {
                     http_response_code(500);
-                    $conn->rollback();
-                    $replyMessage = "theres a problem with entering into the home table";
+                    $replyMessage = "Theres a problem with entering into the home table";
                     apiReply($replyMessage);
                     die();
                 } else {
                     $lastEnteredHomeID = $conn->insert_id;
                 }
-                $homeDataEntryStmt->close();
 
                 $awayDataEntryStmt = $conn->prepare("INSERT INTO `epl_away_team_stats` (`AwayTeamStatID`, `AwayClubID`, `MatchID`, `ATTotalGoals`, `ATHalfTimeGoals`, `ATShots`, `ATShotsOnTarget`, `ATCorners`, `ATFouls`, `ATYellowCards`, `ATRedCards`) VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
                 $awayDataEntryStmt -> bind_param("iiiiiiiiii",
@@ -212,32 +201,34 @@
                             $finalAwayTeamYellowCards,
                             $finalAwayTeamRedCards);
                 $awayDataEntryStmt -> execute();
-                if (!$awayDataEntryStmt) {
-                    $stmtSuccessful = false;
+                
+                if ($awayDataEntryStmt === false) {
                     http_response_code(500);
-                    $conn->rollback();
                     $replyMessage = "Theres a problem with entering into the away team table";
                     apiReply($replyMessage);
                     die();
                 } else {
                     $lastEnteredawayID = $conn->insert_id;
                 }
-                $awayDataEntryStmt->close();
 
-                // if all three statements above didnt work, rollback for this connection
-                if (!$stmtSuccessful) {
-                    $conn->rollback();
-                } else {
+                if ($matchStatement && $homeDataEntryStmt && $awayDataEntryStmt) {
+                    $conn->commit();
                     http_response_code(201);
                     $replyMessage = "Match was successfully input";
                     apiReply($replyMessage);
-                    die();
+                } else {
+                    $conn->rollback();
                 }
                 $conn->autocommit(true);
-                $conn->close();
+
+
+                if ($seasonStmt && $refStmt && $homeStmt && $awayStmt) {    
+                }
         } else {
-            // something wrong with the data quality, dont submit to DB
-            $resultString;
+            http_response_code(400);
+            $replyMessage = "There was an issue with the data submitted - ";
+            $replyMessage .= $resultString;
+            apiReply($replyMessage);
             die();
         }
     } else {
