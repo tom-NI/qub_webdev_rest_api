@@ -28,8 +28,6 @@
 
                     if ($stmt) {
                         http_response_code(204);
-                        $replyMessage = "Name updated successfully";
-                        apiReply($replyMessage);
                         die();
                     } else {
                         http_response_code(500);
@@ -64,8 +62,6 @@
 
                     if ($stmt) {
                         http_response_code(204);
-                        $replyMessage = "Name updated successfully";
-                        apiReply($replyMessage);
                         die();
                     } else {
                         http_response_code(500);
@@ -88,17 +84,26 @@
         } elseif (isset($_GET['delete'])) {
             if (isset($_POST['deleted_club'])) {
                 $clubToDelete = htmlentities(trim($_POST['deleted_club']));
+                $finalClubName = removeUnderScores($clubToDelete);
 
                 // check if any home or away team has a record against this club pre deletion?
                 $stmt = $conn->prepare("SELECT ClubID FROM epl_clubs INNER JOIN epl_home_team_stats ON epl_clubs.ClubID = epl_home_team_stats.HomeClubID where epl_clubs.ClubName = ? ");
-                $stmt -> bind_param("s", $clubToDelete);
+                $stmt -> bind_param("s", $finalClubName);
                 $stmt -> execute();
+                $stmt -> store_result();
                 
                 $awayStmt = $conn->prepare("SELECT ClubID FROM epl_clubs INNER JOIN epl_away_team_stats ON epl_clubs.ClubID = epl_away_team_stats.AwayClubID WHERE epl_clubs.ClubName = ? ");
-                $awayStmt -> bind_param("s", $clubToDelete);
+                $awayStmt -> bind_param("s", $finalClubName);
                 $awayStmt -> execute();
-                
+                $awayStmt -> store_result();
+
+                $disusedClubStmt = $conn->prepare("SELECT ClubID FROM epl_clubs WHERE epl_clubs.ClubName = ? ");
+                $disusedClubStmt -> bind_param("s", $finalClubName);
+                $disusedClubStmt -> execute();
+                $disusedClubStmt -> store_result();
+
                 $totalRows = (int) ($stmt->num_rows + $awayStmt->num_rows);
+                $disusedClubCount = $disusedClubStmt->num_rows;
                 $stmt -> close();
                 $awayStmt -> close();
 
@@ -107,11 +112,12 @@
                     $replyMessage = "This club is part of {$totalRows} match records, please delete all associated records first.  The club has not been deleted";
                     apiReply($replyMessage);
                     die();
-                } else {
-                    // get the clubID
+                } elseif ($totalRows == 0 && $disusedClubCount > 0) {
+                    // get the clubID first
                     $stmt = $conn->prepare("SELECT ClubID FROM epl_clubs WHERE ClubName = ? ");
-                    $stmt -> bind_param("s", $clubToDelete);
+                    $stmt -> bind_param("s", $finalClubName);
                     $stmt -> execute();
+                    $stmt -> store_result();
                     $stmt -> bind_result($clubID);
                     $stmt -> fetch();
                     $totalRows = (int) $stmt->num_rows;
@@ -124,13 +130,11 @@
                     } else {
                         // final delete statement
                         $finalStmt = $conn->prepare("DELETE FROM `epl_clubs` WHERE `epl_clubs`.`ClubID` = ? ");
-                        $finalStmt -> bind_param("i", (int) $clubID);
+                        $finalStmt -> bind_param("i", $clubID);
                         $finalStmt -> execute();
     
                         if ($finalStmt) {
                             http_response_code(204);
-                            $replyMessage = "Club Deleted";
-                            apiReply($replyMessage);
                             die();
                         } else {
                             http_response_code(500);
@@ -149,20 +153,20 @@
                     WHERE epl_referees.RefereeName = ? ;");
                 $stmt -> bind_param("s", $refToDelete);
                 $stmt -> execute();
-
+                $stmt -> store_result();
                 $totalRows = (int) $stmt -> num_rows;
                 $stmt -> close();
 
                 if ($totalRows > 0) {
                     http_response_code(403);
-                    $replyMessage = "This referee is part of {$totalRows} match records, please delete all associated records first.  
-                    The Referee has not been deleted";
+                    $replyMessage = "This referee is part of {$totalRows} match records, please delete all associated records first. The Referee has not been deleted";
                     apiReply($replyMessage);
                     die();
                 } else {
                     $refCheckStmt = $conn->prepare("SELECT RefereeID FROM epl_referees WHERE RefereeName = ? ");
                     $refCheckStmt -> bind_param("s", $refToDelete);
                     $refCheckStmt -> execute();
+                    $refCheckStmt -> store_result();
                     $refCheckStmt -> bind_result($refID);
                     $refCheckStmt -> fetch();
                     $refTotalRows = (int) $refCheckStmt->num_rows;
@@ -180,8 +184,6 @@
 
                         if ($finalStmt) {
                             http_response_code(204);
-                            $replyMessage = "Referee Deleted";
-                            apiReply($replyMessage);
                             die();
                         } else {
                             http_response_code(500);
@@ -199,6 +201,7 @@
                     WHERE epl_seasons.SeasonYears = ? ;");
                 $stmt -> bind_param("s", $seasonToDelete);
                 $stmt -> execute();
+                $stmt -> store_result();
 
                 $totalRows = (int) $stmt -> num_rows;
                 $stmt -> close();
@@ -212,13 +215,14 @@
                     $stmt = $conn->prepare("SELECT SeasonID FROM epl_seasons WHERE SeasonYears = ? ");
                     $stmt -> bind_param("s", $seasonToDelete);
                     $stmt -> execute();
+                    $stmt -> store_result();
                     $stmt -> bind_result($seasonID);
                     $stmt -> fetch();
                     $totalRows = (int) $stmt->num_rows;
 
                     if ($totalRows == 0) {
                         http_response_code(400);
-                        $replyMessage = "Unknown season, please enter season years in the format YYYY-YYYY";
+                        $replyMessage = "Unknown or non-existent season, please enter season years in the format YYYY-YYYY";
                         apiReply($replyMessage);
                         die();
                     } else {
@@ -228,8 +232,6 @@
 
                         if ($finalStmt) {
                             http_response_code(204);
-                            $replyMessage = "Season Deleted";
-                            apiReply($replyMessage);
                             die();
                         } else {
                             http_response_code(500);
