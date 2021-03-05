@@ -129,7 +129,6 @@
                 $refStmt -> store_result();
                 $refStmt -> bind_result($returnedRefereeID);
                 $refStmt -> fetch();
-                echo "ref ID = {$returnedRefereeID}";
 
                 // fetch home club ID from the DB
                 $homeStmt = $conn->prepare("SELECT ClubID FROM epl_clubs WHERE ClubName = ? ");
@@ -140,7 +139,6 @@
                     $homeStmt -> bind_result($homeClubID);
                     $homeStmt -> fetch();
                 }
-                echo "home club ID = {$homeClubID}";
 
                 // fetch away club ID from the DB
                 $awayStmt = $conn->prepare("SELECT ClubID FROM epl_clubs WHERE ClubName = ? ");
@@ -151,7 +149,6 @@
                     $awayStmt -> bind_result($awayClubID);
                     $awayStmt -> fetch();
                 }
-                echo "away club ID = {$awayClubID}";
 
                 $matchStatement = $conn->prepare("INSERT INTO `epl_matches` (`MatchID`, `SeasonID`, `MatchDate`, `KickOffTime`, `RefereeID`) VALUES (NULL, ?, ?, ?, ?);");
                 $matchStatement -> bind_param("issi",
@@ -197,7 +194,6 @@
                     if ($homeMatchIDStmt -> num_rows > 0) {
                         $homeMatchIDStmt -> bind_result($homeMatchId);
                         $homeMatchIDStmt -> fetch();
-                        echo "home match id {$homeMatchId}";
                         $homeMatchIDStmt ->close();
                     } else {
                         http_response_code(500);
