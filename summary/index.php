@@ -42,7 +42,7 @@
                 die();
             }
             $matchSummaryQuery = "{$mainQuery} {$seasonQuery} {$orderByQuery}";
-        } 
+        }
         
         if (isset($_GET['usersearch'])) {
             // wildcard search for main search bar!
@@ -77,14 +77,6 @@
                 
                         } else {
 
-                        }
-
-                        // check num_rows
-                        if () {
-
-                        } else {
-                            http_response_code(404);
-                            // etc
                         }
                     }
 
