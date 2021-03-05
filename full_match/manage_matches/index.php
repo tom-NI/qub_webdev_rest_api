@@ -9,20 +9,19 @@
             $matchID = (int) htmlentities(trim($_POST['id']));
 
             // get refereeID
-            $stmt = $conn->prepare("SELECT MatchID FROM `epl_matches` WHERE MatchID = ? ;");
+            $stmt = $conn->prepare("SELECT MatchID FROM `epl_matches` WHERE MatchID = ? ");
             $stmt -> bind_param("i", $matchID);
             $stmt -> execute();
+            $stmt -> store_result();
             $totalRows = $stmt->num_rows;
-            $stmt->close();
-
-            if ($totalRows == 1) {
-                $conn->autocommit(false);
-
-                $homeStmt = $conn->prepare("DELETE FROM `epl_home_team_stats` WHERE `epl_home_team_stats`.`HomeTeamStatID` = ? ;");
+            $stmt -> close();
+            
+            if ($totalRows === 1) {
+                $homeStmt = $conn->prepare("DELETE FROM `epl_home_team_stats` WHERE `epl_home_team_stats`.`MatchID` = ? ;");
                 $homeStmt -> bind_param("i", $matchID);
                 $homeStmt -> execute();
 
-                $awayStmt = $conn->prepare("DELETE FROM `epl_away_team_stats` WHERE `epl_away_team_stats`.`AwayTeamStatID` = ? ;");
+                $awayStmt = $conn->prepare("DELETE FROM `epl_away_team_stats` WHERE `epl_away_team_stats`.`MatchID` = ? ;");
                 $awayStmt -> bind_param("i", $matchID);
                 $awayStmt -> execute();
 
@@ -31,18 +30,12 @@
                 $matchStmt -> execute();
 
                 if ($homeStmt && $awayStmt && $matchStmt) {
-                    http_response_code(204);
-                    $conn->autocommit(true);
-                    $replyMessage = "Deletion was successful";
-                    apiReply($replyMessage);
-                    die();
+                    // no written JSON response as 204 doesnt reponses!
+                    http_response_code(204); 
                 } else {
-                    $conn->rollback();
-                    $conn->autocommit(true);
                     http_response_code(500);
                     $replyMessage = "Deletion was unsuccessful, please try later";
                     apiReply($replyMessage);
-                    die();
                 }
             } else {
                 http_response_code(400);
@@ -60,8 +53,6 @@
             apiReply($replyMessage);
             die();
         }
-
-        
     }
 
     
