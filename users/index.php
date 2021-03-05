@@ -73,16 +73,22 @@
             $stmt -> bind_result($passwordToCompare);
             $stmt -> fetch();
 
-            if ($stmt->num_rows() > 0) {
+            if ($stmt->num_rows > 0) {
                 // user email exists, check hashed passwords
                 if(password_verify($passwordToCompare, $hashedPassword)) {
+                    http_response_code(200);
                     $replyMessage = "Logged in";
+                    apiReply($replyMessage);
+                    die();
+                } else {
+                    http_response_code(404);
+                    $replyMessage = "Password Doesnt match, please reset password";
                     apiReply($replyMessage);
                     die();
                 }
             } else {
                 http_response_code(404);
-                $replyMessage = "Email or password doesnt match, please try again";
+                $replyMessage = "Email doesnt exist, please register first";
                 apiReply($replyMessage);
                 die();
             }
