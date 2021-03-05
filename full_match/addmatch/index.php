@@ -12,7 +12,7 @@
         $finalRefereeName = htmlentities(trim($_POST['refereename']));
 
         $homeClubName = htmlentities(trim($_POST['homeclub']));
-        $finalHomeClubName = addUnderScores($homeClubName);
+        $finalHomeClubName = removeUnderScores($homeClubName);
         $finalHomeTeamHalfTimeGoals = htmlentities(trim($_POST['ht_halftimegoals']));
         $finalHomeTeamTotalGoals = htmlentities(trim($_POST['ht_totalgoals']));
         $finalHomeTeamShots = htmlentities(trim($_POST['ht_shots']));
@@ -23,7 +23,7 @@
         $finalHomeTeamRedCards = htmlentities(trim($_POST['ht_redcards']));
 
         $awayClubName = htmlentities(trim($_POST['awayclub']));
-        $finalAwayClubName = addUnderScores($awayClubName);
+        $finalAwayClubName = removeUnderScores($awayClubName);
         $finalAwayTeamHalfTimeGoals = htmlentities(trim($_POST['at_halftimegoals']));
         $finalAwayTeamTotalGoals = htmlentities(trim($_POST['at_totalgoals']));
         $finalAwayTeamShots = htmlentities(trim($_POST['at_shots']));
@@ -109,6 +109,9 @@
             && $shotsOTisntLessThanGoals 
             && $foulsLessThanTotalCards
             && $currentSeasonSelected) {
+                // setup control variable
+                $allEntriesSuccessful = false;
+
                 // fetch seasonID from DB
                 $seasonStmt = $conn->prepare("SELECT SeasonID FROM epl_seasons WHERE SeasonYears = ? ");
                 $seasonStmt -> bind_param("s", $finalSeasonName);
@@ -126,6 +129,7 @@
                 $refStmt -> store_result();
                 $refStmt -> bind_result($returnedRefereeID);
                 $refStmt -> fetch();
+                echo "ref ID = {$returnedRefereeID}";
 
                 // fetch home club ID from the DB
                 $homeStmt = $conn->prepare("SELECT ClubID FROM epl_clubs WHERE ClubName = ? ");
@@ -136,6 +140,7 @@
                     $homeStmt -> bind_result($homeClubID);
                     $homeStmt -> fetch();
                 }
+                echo "home club ID = {$homeClubID}";
 
                 // fetch away club ID from the DB
                 $awayStmt = $conn->prepare("SELECT ClubID FROM epl_clubs WHERE ClubName = ? ");
@@ -146,10 +151,8 @@
                     $awayStmt -> bind_result($awayClubID);
                     $awayStmt -> fetch();
                 }
+                echo "away club ID = {$awayClubID}";
 
-                // do an SQL transaction programmatically in PHP to accurately insert a single match into all relevent tables;
-                $conn->autocommit(false);
-                // setup one statement per table, track if entry if successful for each or not
                 $matchStatement = $conn->prepare("INSERT INTO `epl_matches` (`MatchID`, `SeasonID`, `MatchDate`, `KickOffTime`, `RefereeID`) VALUES (NULL, ?, ?, ?, ?);");
                 $matchStatement -> bind_param("issi",
                             $finalSeasonID,
@@ -159,8 +162,9 @@
                 $matchStatement -> execute();
                 if ($matchStatement === false) {
                     http_response_code(500);
-                    $replyMessage = "Theres a problem with entering Match data";
+                    $replyMessage = "There was a problem with entering Match data, please review and try again";
                     apiReply($replyMessage);
+                    die();
                 } else {
                     $lastEnteredMatchID = $conn->insert_id;
                 }
@@ -181,17 +185,32 @@
 
                 if ($homeDataEntryStmt === false) {
                     http_response_code(500);
-                    $replyMessage = "Theres a problem with entering into the home table";
+                    $replyMessage = "There was a problem with entering data, please review and try again";
                     apiReply($replyMessage);
                     die();
                 } else {
-                    $lastEnteredHomeID = $conn->insert_id;
+                    $lastEnteredHomeID = (int) $conn->insert_id;
+                    $homeMatchIDStmt = $conn->prepare("SELECT MatchID FROM `epl_home_team_stats` WHERE HomeTeamStatID = ? ;");
+                    $homeMatchIDStmt -> bind_param("i", $lastEnteredHomeID);
+                    $homeMatchIDStmt -> execute();
+                    $homeMatchIDStmt -> store_result();
+                    if ($homeMatchIDStmt -> num_rows > 0) {
+                        $homeMatchIDStmt -> bind_result($homeMatchId);
+                        $homeMatchIDStmt -> fetch();
+                        echo "home match id {$homeMatchId}";
+                        $homeMatchIDStmt ->close();
+                    } else {
+                        http_response_code(500);
+                        $replyMessage = "There was a problem with entering data, please review and try again";
+                        apiReply($replyMessage);
+                        die();
+                    }
                 }
 
                 $awayDataEntryStmt = $conn->prepare("INSERT INTO `epl_away_team_stats` (`AwayTeamStatID`, `AwayClubID`, `MatchID`, `ATTotalGoals`, `ATHalfTimeGoals`, `ATShots`, `ATShotsOnTarget`, `ATCorners`, `ATFouls`, `ATYellowCards`, `ATRedCards`) VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
                 $awayDataEntryStmt -> bind_param("iiiiiiiiii",
                             $awayClubID,
-                            $lastEnteredMatchID,
+                            $homeMatchId,
                             $finalAwayTeamTotalGoals,
                             $finalAwayTeamHalfTimeGoals,
                             $finalAwayTeamShots,
@@ -204,25 +223,21 @@
                 
                 if ($awayDataEntryStmt === false) {
                     http_response_code(500);
-                    $replyMessage = "Theres a problem with entering into the away team table";
+                    $replyMessage = "There was a problem with entering Match data, please review and try again";
                     apiReply($replyMessage);
                     die();
                 } else {
-                    $lastEnteredawayID = $conn->insert_id;
+                    $allEntriesSuccessful = true;
                 }
 
-                if ($matchStatement && $homeDataEntryStmt && $awayDataEntryStmt) {
-                    $conn->commit();
+                if ($allEntriesSuccessful) {
                     http_response_code(201);
-                    $replyMessage = "Match was successfully input";
+                    $replyMessage = "Match was successfully input, thank you for your contribution";
                     apiReply($replyMessage);
                 } else {
-                    $conn->rollback();
-                }
-                $conn->autocommit(true);
-
-
-                if ($seasonStmt && $refStmt && $homeStmt && $awayStmt) {    
+                    http_response_code(500);
+                    $replyMessage = "Match was not successfully input, please try again";
+                    apiReply($replyMessage);
                 }
         } else {
             http_response_code(400);
