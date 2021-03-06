@@ -4,45 +4,44 @@
     require("../../apifunctions.php");
     require("../../dbconn.php");
 
-    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        if (isset($_GET['addnewclub'])) {
-            $newClubName = htmlentities(trim($_POST['newclubname']));
-            $newClubLogoURL = htmlentities(trim($_POST['newcluburl']));
-            
-            // remove extraneous characters and tidy up the club name
-            $finalClubName = parseClubName($newClubName);
-            
-            // check DB to see if the club name already exists first
-            require("../../api_auth.php");
-            $allClubsURL = "http://tkilpatrick01.lampt.eeecs.qub.ac.uk/epl_api_v1/list?all_clubs";
-            $allCLubsAPIData = file_get_contents($allClubsURL);
-            $allClubsList = json_decode($allCLubsAPIData, true);
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['addnewclub'])) {
+        $newClubName = htmlentities(trim($_POST['newclubname']));
+        $newClubLogoURL = htmlentities(trim($_POST['newcluburl']));
+        
+        // remove extraneous characters and tidy up the club name
+        $finalClubName = parseClubName($newClubName);
+        
+        // check DB to see if the club name already exists first
+        require("../../api_auth.php");
+        $allClubsURL = "http://tkilpatrick01.lampt.eeecs.qub.ac.uk/epl_api_v1/list?all_clubs";
+        $allCLubsAPIData = file_get_contents($allClubsURL);
+        $allClubsList = json_decode($allCLubsAPIData, true);
 
-            foreach ($allClubsList as $existingClub) {
-                if ($finalClubName == $existingClub['club']) {
-                    http_response_code(400);
-                    $replyMessage = "That Club already exists";
-                    apiReply($replyMessage);
-                    die();
-                }
-            }
-            $stmt = $conn->prepare("INSERT INTO `epl_clubs` (`ClubID`, `ClubName`, `ClubLogoURL`) VALUES (NULL, ?, ?);");
-            $stmt -> bind_param("ss", $finalClubName, $newClubLogoURL);
-            $stmt -> execute();
-            $stmt -> fetch();
-            if ($stmt) {
-                http_response_code(201);
-                $replyMessage = "Entry Successful";
-                apiReply($replyMessage);
-                die();
-            } else {
-                http_response_code(500);
-                $replyMessage = "Something went wrong, please try again later";
+        foreach ($allClubsList as $existingClub) {
+            if ($finalClubName == $existingClub['club']) {
+                http_response_code(400);
+                $replyMessage = "That Club already exists";
                 apiReply($replyMessage);
                 die();
             }
-            $stmt -> close();
-    } elseif (isset($_GET['addnewseason'])) {
+        }
+        $stmt = $conn->prepare("INSERT INTO `epl_clubs` (`ClubID`, `ClubName`, `ClubLogoURL`) VALUES (NULL, ?, ?);");
+        $stmt -> bind_param("ss", $finalClubName, $newClubLogoURL);
+        $stmt -> execute();
+        $stmt -> fetch();
+        if ($stmt) {
+            http_response_code(201);
+            $replyMessage = "Entry Successful";
+            apiReply($replyMessage);
+            die();
+        } else {
+            http_response_code(500);
+            $replyMessage = "Something went wrong, please try again later";
+            apiReply($replyMessage);
+            die();
+        }
+        $stmt -> close();
+    } elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['addnewseason'])) {
         $userSeasonEntry = htmlentities(trim($_POST['newseason']));
 
         // todo - check the order of the season entry!
@@ -65,6 +64,7 @@
             }
             // get the suggested next season to add!
             $suggestedNextSeason = findNextSuggestedSeason();
+            echo "<p>{$suggestedNextSeason}</p>";
 
             if ($userSeasonEntry != $suggestedNextSeason) {
                 http_response_code(400);
@@ -94,7 +94,7 @@
             apiReply($replyMessage);
             die();
         }
-    } elseif (isset($_GET['addnewref'])) {
+    } elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['addnewref'])) {
         $userRefNameEntry = htmlentities(trim($_POST['refereename']));
 
         // check user entered a space in the name
@@ -113,7 +113,7 @@
             $stmt -> execute();
             $stmt -> store_result();
             $stmt -> bind_result($refID, $refName);
-            $stmt -> fetch();
+            $stmt->fetch();
 
             if ($stmt->num_rows > 0) {
                 $stmt->close();
@@ -154,5 +154,4 @@
         apiReply($replyMessage);
         die();
     }
-}
 ?>
