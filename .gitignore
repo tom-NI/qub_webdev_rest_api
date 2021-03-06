@@ -1,1 +1,2 @@
-**/*.DS_Store
+#ignore all google crappy files in this directory
+epl_api_v1/**/*.DS_Store
