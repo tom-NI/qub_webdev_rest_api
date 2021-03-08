@@ -206,7 +206,7 @@
         echo json_encode($finalDataSet);
     } elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (isset($_GET['addnewresult'])) {
-            require("../part_page_get_full_match.php");
+            require("part_page_get_full_match.php");
     
             $finalSeasonName = htmlentities(trim($_POST['season']));
     
@@ -399,7 +399,7 @@
                 die();
             }
         } elseif (isset($_GET['editmatch'])) {
-            require("../part_page_get_full_match.php");
+            require("part_page_get_full_match.php");
             $editedMatchID = htmlentities(trim($_POST['id']));
             $justificationForChange = htmlentities(trim($_POST['change_justification']));
 

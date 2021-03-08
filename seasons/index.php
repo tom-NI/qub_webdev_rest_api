@@ -3,8 +3,8 @@
     require("../apifunctions.php");
     require("../dbconn.php");
     if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+        $finalDataSet = array();
         if (isset($_GET['current_season'])) {
-            $finalDataSet = array();
             // get the current device calendar month and year to search for the current season.
             $getCurrentMonth = date("m");
             $getYear = date("Y");
@@ -100,22 +100,21 @@
             
             if (checkSeasonRegex($userSeasonEntry) && $seasonYearsCorrectOrder) {
                 // check if the season already exists before adding it twice;
-                require("../../api_auth.php");
-                $allSeasonsAPIurl = "http://tkilpatrick01.lampt.eeecs.qub.ac.uk/epl_api_v1/list?all_seasons_list";
+                require("../api_auth.php");
+                $allSeasonsAPIurl = "http://tkilpatrick01.lampt.eeecs.qub.ac.uk/epl_api_v1/seasons?all_seasons_list";
                 $allSeasonsAPIdata = file_get_contents($allSeasonsAPIurl);
                 $fixtureList = json_decode($allSeasonsAPIdata, true);
 
                 foreach ($fixtureList as $existingSeason) {
                     if ($userSeasonEntry == $existingSeason['season']) {
                         http_response_code(400);
-                        $replyMessage = "that season already exists";
+                        $replyMessage = "{$userSeasonEntry} season already exists";
                         apiReply($replyMessage);
                         die();
                     }
                 }
                 // get the suggested next season to add!
                 $suggestedNextSeason = findNextSuggestedSeason();
-                echo "<p>{$suggestedNextSeason}</p>";
 
                 if ($userSeasonEntry != $suggestedNextSeason) {
                     http_response_code(400);
@@ -157,5 +156,4 @@
         apiReply($replyMessage);
         die();
     }
-}
 ?>

@@ -85,7 +85,7 @@
     }
 
     function getCurrentSeason() {
-        $currentSeasonURL = "http://tkilpatrick01.lampt.eeecs.qub.ac.uk/epl_api_v1/list?current_season";
+        $currentSeasonURL = "http://tkilpatrick01.lampt.eeecs.qub.ac.uk/epl_api_v1/seasons?current_season";
         require("api_auth.php");
         $currentSeasonData = file_get_contents($currentSeasonURL, false, $context);
         $currentSeasonArray = json_decode($currentSeasonData, true);
@@ -110,7 +110,7 @@
     // todo need to text this for the ADD SEASON API call!
     function findNextSuggestedSeason() {
         require("api_auth.php");
-        $allSeasonsAPIurl = "http://tkilpatrick01.lampt.eeecs.qub.ac.uk/epl_api_v1/list?all_seasons_list";
+        $allSeasonsAPIurl = "http://tkilpatrick01.lampt.eeecs.qub.ac.uk/epl_api_v1/seasons?all_seasons_list";
         $allSeasonsAPIdata = file_get_contents($allSeasonsAPIurl);
         $seasonList = json_decode($allSeasonsAPIdata, true);
         $dbHighestSeasonEntered = $seasonList[0]["season"];

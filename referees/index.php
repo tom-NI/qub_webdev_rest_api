@@ -31,7 +31,7 @@
                 && strlen($userRefNameEntry) < 30) {
                 $finalNameForDB = parseRefereeName($userRefNameEntry);
 
-                require("../../dbconn.php");
+                require("../dbconn.php");
                 // check if the referee already exists, else add the referee
                 $stmt = $conn->prepare("SELECT * FROM `epl_referees` WHERE `RefereeName` = ?");
                 $stmt -> bind_param("s", $finalNameForDB);
