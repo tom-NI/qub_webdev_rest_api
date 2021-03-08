@@ -1,6 +1,5 @@
 <?php
     header('Content-Type: application/json');
-
     // api defines a seperate functions file to mimic a true seperate server!
     require("../apifunctions.php");
     require("../dbconn.php");

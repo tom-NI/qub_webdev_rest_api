@@ -153,4 +153,26 @@
         $replyArray[] = $reply;
         echo json_encode($replyArray);
     }
+
+    function apiValidateKey($keyToCheck) {
+        require("dbconn.php");
+        $stmt = $conn->prepare("SELECT id FROM `epl_api_users` WHERE UserKey = ? ;");
+        $stmt -> bind_param("s", $keyToCheck);
+        $stmt -> execute();
+        $stmt -> store_result();
+
+        if ($stmt->num_rows() == 1){
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    // TODO TIDY THIS UP
+    // $providedSignature = hash_hmac("sha3-256", "{$emailAddress}{$key}", "authenticateduser");
+    //     if ($signatureToCompare === $providedSignature) {
+    //         return true;
+    //     } else {
+    //         return false;
+    //     }
 ?>
