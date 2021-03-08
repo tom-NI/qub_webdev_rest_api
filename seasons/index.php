@@ -118,7 +118,7 @@
 
                 if ($userSeasonEntry != $suggestedNextSeason) {
                     http_response_code(400);
-                    $replyMessage = "you didnt enter the next required season!";
+                    $replyMessage = "{$userSeasonEntry} has not been added, the next required season is - {$suggestedNextSeason}";
                     apiReply($replyMessage);
                     die();
                 } else {
