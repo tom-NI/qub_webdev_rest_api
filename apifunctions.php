@@ -1,5 +1,7 @@
 <?php
-    // functions here only used within the API to mimic a seperate server
+    // functions here are held seperately to main page to simulate a completely different API server.
+
+    
     function dbQueryCheckReturn($sqlQuery) {
         require("dbconn.php");
         $queriedValue = $conn->query($sqlQuery);
@@ -188,6 +190,28 @@
             header("HTTP/1.0 401 Unauthorized");
             echo "You need to enter a valid organisation name and key.";
             exit;
+        }
+    }
+
+    // to do - check how to incorporate posting the key value along with form data?
+    function postDevKeyInHeader($endpoint) {
+        // add the dev key to the head of every posted request
+        $orgName = "epl_main_site";
+        $keyValue = "492dd3-816c61-f89f93-e14f5f-e1566b";
+        
+        $opts = array(
+            'http' => array(
+                'method' => 'POST',
+                'header' => "Authorization: Basic ".base64_encode("$orgName:$keyValue")
+            )
+        );
+
+        $context = stream_context_create($opts);
+        $result = file_get_contents($endpoint, false, $context);
+        if (!$result) {
+            return http_response_code(500);
+        } else {
+            return $result;
         }
     }
 ?>

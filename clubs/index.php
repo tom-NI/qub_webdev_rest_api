@@ -20,7 +20,7 @@
             } elseif (isset($_GET['current_season_clubs'])) {
                 // get current season first (callback to this API)
                 $seasonURL = "http://tkilpatrick01.lampt.eeecs.qub.ac.uk/epl_api_v1/seasons?current_season";
-                $currentSeasonData = file_get_contents($seasonURL);
+                $currentSeasonData = postDevKeyInHeader($seasonURL);
                 $currentSeasonList = json_decode($currentSeasonData, true);
 
                 foreach($currentSeasonList as $row) {
