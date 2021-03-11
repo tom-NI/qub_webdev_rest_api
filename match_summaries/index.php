@@ -3,7 +3,7 @@
     // api defines a seperate functions file to mimic a true seperate server!
     require("../apifunctions.php");
     require("../dbconn.php");
-    require("../part_authenticate.php"); {
+    if (checkAPIKey()) {
         $finalDataSet = array();
         $seasonID = null;
         $finalCount = null;

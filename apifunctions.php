@@ -154,10 +154,10 @@
         echo json_encode($replyArray);
     }
 
-    function apiValidateKey($keyToCheck) {
+    function apiValidateKey($keyToCheck, $orgName) {
         require("dbconn.php");
-        $stmt = $conn->prepare("SELECT id FROM `epl_api_users` WHERE UserKey = ? ;");
-        $stmt -> bind_param("s", $keyToCheck);
+        $stmt = $conn->prepare("SELECT id FROM `epl_api_users` WHERE UserKey = ? AND OrganisationName = ? ;");
+        $stmt -> bind_param("ss", $keyToCheck, $orgName);
         $stmt -> execute();
         $stmt -> store_result();
 
@@ -168,11 +168,26 @@
         }
     }
 
-    // TODO TIDY THIS UP
-    // $providedSignature = hash_hmac("sha3-256", "{$emailAddress}{$key}", "authenticateduser");
-    //     if ($signatureToCompare === $providedSignature) {
-    //         return true;
-    //     } else {
-    //         return false;
-    //     }
+    function checkAPIKey() {
+        // $getHeaders = getallheaders();
+        if(isset($_SERVER['PHP_AUTH_USER']) && isset($_SERVER['PHP_AUTH_PW'])) {
+            // $providedOrgName = base64_decode($_SERVER['PHP_AUTH_USER']);
+            // $providedAPIKey = base64_decode($_SERVER['PHP_AUTH_PW']);
+            $providedOrgName = $_SERVER['PHP_AUTH_USER'];
+            $providedAPIKey = $_SERVER['PHP_AUTH_PW'];
+            if (apiValidateKey($providedAPIKey, $providedOrgName) === false) {
+                http_response_code(401);
+                $replyMessage = "Details incorrect, please check the details provided at registration, or register for a key at http://tkilpatrick01.lampt.eeecs.qub.ac.uk/a_assignment_code/api_registration.php";
+                apiReply($replyMessage);
+                die();
+            } else  {
+                return true;
+            }
+        } else {
+            header("WWW-Authenticate: Basic realm='Admin Dashboard'");
+            header("HTTP/1.0 401 Unauthorized");
+            echo "You need to enter a valid organisation name and key.";
+            exit;
+        }
+    }
 ?>
