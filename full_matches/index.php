@@ -20,7 +20,7 @@
             INNER JOIN epl_referees ON epl_referees.RefereeID = epl_matches.RefereeID
             INNER JOIN epl_clubs ON epl_clubs.ClubID = epl_home_team_stats.HomeClubID";
 
-            $orderQuery = "ORDER BY MatchID ASC";
+            $orderQuery = "ORDER BY MatchID DESC";
 
             if (isset($_GET['onematch'])) {
                 // check id exists in DB before proceeding!
