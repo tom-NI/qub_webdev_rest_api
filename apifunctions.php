@@ -214,4 +214,14 @@
             return $result;
         }
     }
+
+    // check the length of a concatendated SQL query to change the search adverb
+    function provideSQLQueryJoinAdverb($concatenatedQueries) {
+        if (strlen($concatenatedQueries) == 0) {
+            $joinPronoun = "WHERE";
+        } else {
+            $joinPronoun = "AND";
+        }
+        return $joinPronoun;
+    }
 ?>
