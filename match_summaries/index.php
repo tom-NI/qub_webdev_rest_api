@@ -14,7 +14,15 @@
         $orderByQuery = "ORDER BY epl_matches.MatchID DESC";
         $matchSummaryQuery = "{$mainQuery} {$orderByQuery}";
 
+        // string to add on all dynamic conditional queries to any request
+        $conditionalQueries = "";
+
+        // prepared statement variables to store datatypes and data depending on the query
+        $preparedStatementTypes = "";
+        $preparedStatementDataArray = array();
+
         if (isset($_GET['season'])) {
+            // user wants a full seasons summary
             $seasonYear = htmlentities(trim($_GET["season"]));
             
             // only proceed with the query if the input matches regex constraints
@@ -32,7 +40,9 @@
                 } else {
                     $seasonStmt->bind_result($seasonID);
                     $seasonStmt->fetch();
-                    $seasonQuery = "WHERE SeasonID = {$seasonID}";
+                    $conditionalQueries .= "WHERE SeasonID = ? ";
+                    $preparedStatementTypes = "i";
+                    $preparedStatementDataArray = array($seasonID);
                 }
             } else {
                 http_response_code(400);
@@ -48,16 +58,20 @@
             $userSearchStmt -> bind_param("s", $userEntry);
             $userSearchStmt -> execute();
             $userSearchStmt -> store_result();
-            
+            $userSearchStmt -> bind_result($clubID);
+            $userSearchStmt -> fetch();
+
             // only proceed if the club exists in the database
             if ($userSearchStmt->num_rows > 1) {
                 http_response_code(400);
                 $errorMessage = "That club cannot be identified, please enter a new club and try again";
                 apiReply($errorMessage);
                 die();
-            } elseif ($userSearchStmt->num_rows > 0) {
-                $userSearchStmt -> bind_result($usersSearchedClubID);
-                $userSearchStmt -> fetch();
+            } elseif ($userSearchStmt->num_rows == 1) {
+                // valid club - setup the whole query and finalise the SQL query structure
+                $conditionalQueries .= "WHERE (HomeClubID = ? OR AwayClubID = ? )";
+                $preparedStatementTypes = "ii";
+                $preparedStatementDataArray = array($clubID,$clubID);
             } else {
                 http_response_code(400);
                 $errorMessage = "That club cannot be identified, please enter a new club and try again";
@@ -65,21 +79,23 @@
                 die();
             }
         } elseif (isset($_GET['filter'])) {
-            // all the options for the filter panel
-            // count the total number of queries
+            // all the options for the filter panel on match search page
             $filterQueryCount = 0;
-            $allFilterQueries = "";
-
-            $preparedStatementTypes = "";
-            $preparedStatementDataArray = array();
 
             // post the club and set the select to be the posted club
-            if (isset($_GET['club'])) {
+            // if an opposition team is set, but no home club, search as a club anyway and disregard the fixture
+            if (isset($_GET['club']) && !isset($_GET['opposition_team'])
+                || (isset($_GET['opposition_team']) && !isset($_GET['club']))) {
                 $filterQueryCount++;
-                $clubFilter = htmlentities(trim($_GET['club']));
-                $allFilterQueries = "";
 
-                // query club exists
+                // vary the club search by the provided parameter
+                if ((isset($_GET['opposition_team']) && !isset($_GET['club']))) {
+                    $clubFilter = htmlentities(trim($_GET['opposition_team']));
+                } elseif (isset($_GET['club']) && !isset($_GET['opposition_team'])) {
+                    $clubFilter = htmlentities(trim($_GET['club']));
+                }
+
+                // query club exists first
                 $stmt = $conn->prepare("SELECT ClubID FROM epl_clubs WHERE ClubName = ? ;");
                 $stmt -> bind_param("s", $clubFilter);
                 $stmt -> execute();
@@ -89,17 +105,52 @@
 
                 // concatentate the SQL query appropriately
                 if ($stmt->num_rows == 1) {
-                    $joinAdverb = provideSQLQueryJoinAdverb($allFilterQueries);
-                    $allFilterQueries .= "{$joinAdverb} (HomeClubID = ? OR AwayClubID = ?) ";
+                    $joinAdverb = provideSQLQueryJoinAdverb($conditionalQueries);
+                    $conditionalQueries .= "{$joinAdverb} (HomeClubID = ? OR AwayClubID = ?) ";
                     
                     $preparedStatementTypes .= "ii";
                     $preparedStatementDataArray[] = $clubID;
                     $preparedStatementDataArray[] = $clubID;
-                    // add ClubID to the statement
-                    // add on the datatype to the query array
                 } else {
                     http_response_code(400);
                     $errorMessage = "That club cannot be identified or is ambiguous, please enter a new club and try again";
+                    apiReply($errorMessage);
+                    die();
+                }
+            } elseif (isset($_GET['opposition_team']) && isset($_GET['club'])) {
+                // need to find a fixture, so two clubs needed
+                $filterQueryCount++;
+                $clubFilter = removeUnderScores(htmlentities(trim($_GET['club'])));
+                $oppositionClubFilter = removeUnderScores(htmlentities(trim($_GET['opposition_team'])));
+
+                // query club exists
+                $stmt = $conn->prepare("SELECT ClubID FROM epl_clubs WHERE ClubName = ? ;");
+                $stmt -> bind_param("s", $clubFilter);
+                $stmt -> execute();
+                $stmt -> store_result();
+                $stmt -> bind_result($homeClubID);
+                $stmt -> fetch();
+
+                // query opposition club exists
+                $oppositionStmt = $conn->prepare("SELECT ClubID FROM epl_clubs WHERE ClubName = ? ;");
+                $oppositionStmt -> bind_param("s", $oppositionClubFilter);
+                $oppositionStmt -> execute();
+                $oppositionStmt -> store_result();
+                $oppositionStmt -> bind_result($oppositionClubID);
+                $oppositionStmt -> fetch();
+
+                // concatentate the SQL query appropriately
+                if ($stmt->num_rows == 1 && $oppositionStmt->num_rows == 1) {
+                    $joinAdverb = provideSQLQueryJoinAdverb($conditionalQueries);
+                    $conditionalQueries .= "{$joinAdverb} ((HomeClubID = ? AND AwayClubID = ?) OR (HomeClubID = ? AND AwayClubID = ?))";
+                    $preparedStatementTypes .= "iiii";
+                    $preparedStatementDataArray[] = $homeClubID;
+                    $preparedStatementDataArray[] = $oppositionClubID;
+                    $preparedStatementDataArray[] = $oppositionClubID;
+                    $preparedStatementDataArray[] = $homeClubID;
+                } else {
+                    http_response_code(400);
+                    $errorMessage = "One of those clubs cannot be identified or is ambiguous, please try again";
                     apiReply($errorMessage);
                     die();
                 }
@@ -118,8 +169,8 @@
                 $stmt -> fetch();
 
                 if ($stmt->num_rows > 0) {
-                    $joinAdverb = provideSQLQueryJoinAdverb($allFilterQueries);
-                    $allFilterQueries .= "{$joinAdverb} SeasonID = ? ";
+                    $joinAdverb = provideSQLQueryJoinAdverb($conditionalQueries);
+                    $conditionalQueries .= "{$joinAdverb} SeasonID = ? ";
 
                     $preparedStatementTypes .= "i";
                     $preparedStatementDataArray[] = $seasonID;
@@ -130,12 +181,6 @@
                     die();
                 }
             }
-            
-            // if (isset($_GET['fixture']) && !isset($_GET['club'])) {
-                
-            // } elseif (isset($_GET['club']) && isset($_GET['fixture'])) {
-
-            // }
 
             if (isset($_GET['htresult']) && (isset($_GET['atresult']))) {
                 $filterQueryCount++;
@@ -143,8 +188,8 @@
                 $atResult = (int) htmlentities(trim($_GET['atresult']));
 
                 if (is_numeric($htResult) && is_numeric($atResult) && $htResult >= 0 && $atResult >= 0) {
-                    $joinAdverb = provideSQLQueryJoinAdverb($allFilterQueries);
-                    $allFilterQueries .= "{$joinAdverb} (HTTotalGoals = ? AND ATTotalGoals = ? )";
+                    $joinAdverb = provideSQLQueryJoinAdverb($conditionalQueries);
+                    $conditionalQueries .= "{$joinAdverb} (HTTotalGoals = ? AND ATTotalGoals = ? )";
 
                     $preparedStatementTypes .= "ii";
                     $preparedStatementDataArray[] = $htResult;
@@ -155,22 +200,59 @@
                     apiReply($errorMessage);
                     die();
                 }
+            } elseif (isset($_GET['htresult']) || isset($_GET['atresult'])) {
+                // one or the other parameter is set
+                $filterQueryCount++;
+                $result = 0;
+                if (isset($_GET['htresult'])) {
+                    $result = (int) htmlentities(trim($_GET['htresult']));
+                    if (is_numeric($result) && $result >= 0) {
+                        $joinAdverb = provideSQLQueryJoinAdverb($conditionalQueries);
+                        $conditionalQueries .= "{$joinAdverb} (HTTotalGoals = ? )";
+                    } else {
+                        http_response_code(400);
+                        $errorMessage = "That result is not in the correct format, please try again";
+                        apiReply($errorMessage);
+                        die();
+                    }
+                } else {
+                    $result = (int) htmlentities(trim($_GET['atresult']));
+                    if (is_numeric($result) && $result >= 0) {
+                        $joinAdverb = provideSQLQueryJoinAdverb($conditionalQueries);
+                        $conditionalQueries .= "{$joinAdverb} (ATTotalGoals = ? )";
+                    } else {
+                        http_response_code(400);
+                        $errorMessage = "That result is not in the correct format, please try again";
+                        apiReply($errorMessage);
+                        die();
+                    }
+                }
+
+                $preparedStatementTypes .= "i";
+                $preparedStatementDataArray[] = $result;
             }
     
             if (isset($_GET['margin'])) {
                 $filterQueryCount++;
-                $margin = (int) htmlentities(trim($_GET['margin']));
-                if ($margin > 0 && $margin <= 12) {
-                    $joinAdverb = provideSQLQueryJoinAdverb($allFilterQueries);
-                    $allFilterQueries .= "{$joinAdverb} GREATEST(HTTotalGoals, ATTotalGoals) - LEAST(HTTotalGoals, ATTotalGoals) = ? ";
-
-                    $preparedStatementTypes .= "i";
-                    $preparedStatementDataArray[] = $margin;
-                } else {
+                if (isset($_GET['htresult']) && (isset($_GET['atresult']))) {
                     http_response_code(400);
-                    $errorMessage = "Please enter a lower (positive) goal difference and try again";
+                    $errorMessage = "Please remove either the Home Team Result or the Away Team result to search by Margin";
                     apiReply($errorMessage);
                     die();
+                } else {
+                    $margin = (int) htmlentities(trim($_GET['margin']));
+                    if ($margin >= 0 && $margin <= 12) {
+                        $joinAdverb = provideSQLQueryJoinAdverb($conditionalQueries);
+                        $conditionalQueries .= "{$joinAdverb} (GREATEST(HTTotalGoals, ATTotalGoals) - LEAST(HTTotalGoals, ATTotalGoals) = ? )";
+    
+                        $preparedStatementTypes .= "i";
+                        $preparedStatementDataArray[] = $margin;
+                    } else {
+                        http_response_code(400);
+                        $errorMessage = "Please enter a lower (positive) goal difference and try again";
+                        apiReply($errorMessage);
+                        die();
+                    }
                 }
             }
     
@@ -178,8 +260,8 @@
                 $filterQueryCount++;
                 $month = (int) htmlentities(trim($_GET['month']));
                 if ($month >= 01 && $month <= 12) {
-                    $joinAdverb = provideSQLQueryJoinAdverb($allFilterQueries);
-                    $allFilterQueries .= "{$joinAdverb} EXTRACT(MONTH FROM MatchDate) = ? ";
+                    $joinAdverb = provideSQLQueryJoinAdverb($conditionalQueries);
+                    $conditionalQueries .= "{$joinAdverb} EXTRACT(MONTH FROM MatchDate) = ? ";
                     $preparedStatementTypes .= "i";
                     $preparedStatementDataArray[] = $month;
                 } else {
@@ -204,8 +286,8 @@
 
                 // if ref exists, concatentate the SQL query appropriately
                 if ($stmt->num_rows == 1) {
-                    $joinAdverb = provideSQLQueryJoinAdverb($allFilterQueries);
-                    $allFilterQueries .= "{$joinAdverb} RefereeID = ? ";
+                    $joinAdverb = provideSQLQueryJoinAdverb($conditionalQueries);
+                    $conditionalQueries .= "{$joinAdverb} RefereeID = ? ";
                     $preparedStatementTypes .= "i";
                     $preparedStatementDataArray[] = $refID;
                 } else {
@@ -218,32 +300,16 @@
         }
 
         // run the full query now and then build the JSON response
-        if ($filterQueryCount > 0) {
-            $matchSummaryQuery = "{$mainQuery} {$allFilterQueries} {$orderByQuery}";
-            if (isset($_GET['count'])) {
-                $limitQuery = queryPagination();
-                $matchSummaryQuery .= " {$limitQuery}";
-            }
-
-            // PROBLEM GETTING THE DATA ARRAY INTO THE PREPARED STATEMENT BIND_PARAM
-            // echo "<p>{$matchSummaryQuery}</p>";
-            // echo "<p>$preparedStatementTypes</p>";
-
-            // print_r(...$preparedStatementDataArray);
-            // print_r($preparedStatementDataArray);
-
-            $stmt = $conn->prepare($matchSummaryQuery);
-            $stmt -> bind_param($preparedStatementTypes, ...$preparedStatementDataArray);
-            
-        } else {
-            if (isset($_GET['count'])) {
-                $limitQuery = queryPagination();
-                $matchSummaryQuery .= " {$limitQuery}";
-            }
-            $stmt = $conn->prepare($matchSummaryQuery);
+        $matchSummaryQuery = "{$mainQuery} {$conditionalQueries} {$orderByQuery}";
+        if (isset($_GET['count'])) {
+            $limitQuery = queryPagination();
+            $matchSummaryQuery .= " {$limitQuery}";
         }
-        $stmt -> bind_result($matchID, $matchDate, $homeClubId, $htGoals, $atGoals, $awayClubId); 
+        $stmt = $conn->prepare($matchSummaryQuery);
+        // load in the accrued data types and data array queries above
+        $stmt -> bind_param($preparedStatementTypes, ...$preparedStatementDataArray);
         $stmt -> execute();
+        $stmt -> bind_result($matchID, $matchDate, $homeClubId, $htGoals, $atGoals, $awayClubId);
         $stmt -> store_result();
 
         while ($stmt->fetch()) {
