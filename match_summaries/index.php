@@ -50,7 +50,6 @@
                 apiReply($errorMessage);
                 die();
             }
-            $matchSummaryQuery = "{$mainQuery} {$seasonQuery} {$orderByQuery}";
         } elseif (isset($_GET['usersearch'])) {
             // wildcard search for main search bar!
             $userSearchStmt = $conn->prepare("SELECT ClubID FROM epl_clubs WHERE ClubName LIKE ? ");
