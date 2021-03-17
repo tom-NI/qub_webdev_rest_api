@@ -6,6 +6,8 @@
     if (checkAPIKey()) {
         $finalDataSet = array();
         $seasonID = null;
+
+        // control var to see if there needs to be any data added for prepared statements
         $filterQueryCount = 0;
 
         // CANT PUT THIS ONTO MULTI LINES AS IT INSERTS A NEWLINE CHAR AND BREAKS THE QUERY \n
@@ -38,6 +40,7 @@
                     apiReply($replyMessage);
                     die();
                 } else {
+                    $filterQueryCount++;
                     $seasonStmt->bind_result($seasonID);
                     $seasonStmt->fetch();
                     $conditionalQueries .= "WHERE SeasonID = ? ";
@@ -68,6 +71,7 @@
                 die();
             } elseif ($userSearchStmt->num_rows == 1) {
                 // valid club - setup the whole query and finalise the SQL query structure
+                $filterQueryCount++;
                 $conditionalQueries .= "WHERE (HomeClubID = ? OR AwayClubID = ? )";
                 $preparedStatementTypes = "ii";
                 $preparedStatementDataArray = array($clubID,$clubID);
@@ -78,14 +82,11 @@
                 die();
             }
         } elseif (isset($_GET['filter'])) {
-            // all the options for the filter panel on match search page
-            $filterQueryCount = 0;
-
             // post the club and set the select to be the posted club
             // if an opposition team is set, but no home club, search as a club anyway and disregard the fixture
             if (isset($_GET['club']) && !isset($_GET['opposition_team'])
                 || (isset($_GET['opposition_team']) && !isset($_GET['club']))) {
-                $filterQueryCount++;
+                
 
                 // vary the club search by the provided parameter
                 if ((isset($_GET['opposition_team']) && !isset($_GET['club']))) {
@@ -104,9 +105,9 @@
 
                 // concatentate the SQL query appropriately
                 if ($stmt->num_rows == 1) {
+                    $filterQueryCount++;
                     $joinAdverb = provideSQLQueryJoinAdverb($conditionalQueries);
                     $conditionalQueries .= "{$joinAdverb} (HomeClubID = ? OR AwayClubID = ?) ";
-                    
                     $preparedStatementTypes .= "ii";
                     $preparedStatementDataArray[] = $clubID;
                     $preparedStatementDataArray[] = $clubID;
@@ -305,8 +306,10 @@
             $matchSummaryQuery .= " {$limitQuery}";
         }
         $stmt = $conn->prepare($matchSummaryQuery);
-        // load in the accrued data types and data array queries above
-        $stmt -> bind_param($preparedStatementTypes, ...$preparedStatementDataArray);
+        if ($filterQueryCount > 0) {
+            // only lod load in the accrued data types and data array queries above if required for any given query
+            $stmt -> bind_param($preparedStatementTypes, ...$preparedStatementDataArray);
+        }
         $stmt -> execute();
         $stmt -> bind_result($matchID, $matchDate, $homeClubId, $htGoals, $atGoals, $awayClubId);
         $stmt -> store_result();
