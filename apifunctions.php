@@ -111,9 +111,8 @@
     
     // todo need to text this for the ADD SEASON API call!
     function findNextSuggestedSeason() {
-        require("api_auth.php");
         $allSeasonsAPIurl = "http://tkilpatrick01.lampt.eeecs.qub.ac.uk/epl_api_v1/seasons?all_seasons_list";
-        $allSeasonsAPIdata = file_get_contents($allSeasonsAPIurl);
+        $allSeasonsAPIdata = postDevKeyInHeader($allSeasonsAPIurl);
         $seasonList = json_decode($allSeasonsAPIdata, true);
         $dbHighestSeasonEntered = $seasonList[0]["season"];
 
