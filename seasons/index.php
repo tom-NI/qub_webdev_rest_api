@@ -101,9 +101,8 @@
                 
                 if (checkSeasonRegex($userSeasonEntry) && $seasonYearsCorrectOrder) {
                     // check if the season already exists before adding it twice;
-                    require("../api_auth.php");
                     $allSeasonsAPIurl = "http://tkilpatrick01.lampt.eeecs.qub.ac.uk/epl_api_v1/seasons?all_seasons_list";
-                    $allSeasonsAPIdata = file_get_contents($allSeasonsAPIurl);
+                    $allSeasonsAPIdata = postDevKeyInHeader($allSeasonsAPIurl);
                     $fixtureList = json_decode($allSeasonsAPIdata, true);
 
                     foreach ($fixtureList as $existingSeason) {
