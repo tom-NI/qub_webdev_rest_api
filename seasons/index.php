@@ -45,55 +45,7 @@
             // encode the final data set to JSON
             echo json_encode($finalDataSet);
         } elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            if (isset($_POST['deleted_season'])) {
-                $seasonToDelete = htmlentities(trim($_POST['deleted_season']));
-
-                $stmt = $conn->prepare("SELECT * FROM `epl_matches`
-                    INNER JOIN epl_seasons ON epl_seasons.SeasonID = epl_matches.SeasonID
-                    WHERE epl_seasons.SeasonYears = ? ;");
-                $stmt -> bind_param("s", $seasonToDelete);
-                $stmt -> execute();
-                $stmt -> store_result();
-
-                $totalRows = (int) $stmt -> num_rows;
-                $stmt -> close();
-
-                if ($totalRows > 0) {
-                    http_response_code(403);
-                    $replyMessage = "This season is part of {$totalRows} match records, please delete all associated records first.  The season has not been deleted";
-                    apiReply($replyMessage);
-                    die();
-                } else {
-                    $stmt = $conn->prepare("SELECT SeasonID FROM epl_seasons WHERE SeasonYears = ? ");
-                    $stmt -> bind_param("s", $seasonToDelete);
-                    $stmt -> execute();
-                    $stmt -> store_result();
-                    $stmt -> bind_result($seasonID);
-                    $stmt -> fetch();
-                    $totalRows = (int) $stmt->num_rows;
-
-                    if ($totalRows == 0) {
-                        http_response_code(400);
-                        $replyMessage = "Unknown or non-existent season, please enter season years in the format YYYY-YYYY";
-                        apiReply($replyMessage);
-                        die();
-                    } else {
-                        $finalStmt = $conn->prepare("DELETE FROM `epl_seasons` WHERE `epl_seasons`.`SeasonID` = ? ;");
-                        $finalStmt -> bind_param("i", $seasonID);
-                        $finalStmt -> execute();
-
-                        if ($finalStmt) {
-                            http_response_code(204);
-                            die();
-                        } else {
-                            http_response_code(500);
-                            $replyMessage = "Season has not been deleted, please try again later";
-                            apiReply($replyMessage);
-                            die();
-                        }
-                    }
-                }
-            } elseif (isset($_GET['addnewseason'])) {
+            if (isset($_GET['addnewseason'])) {
                 $userSeasonEntry = htmlentities(trim($_POST['newseason']));
 
                 // todo - check the order of the season entry!
