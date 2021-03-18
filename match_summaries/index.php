@@ -23,37 +23,7 @@
         $preparedStatementTypes = "";
         $preparedStatementDataArray = array();
 
-        if (isset($_GET['season'])) {
-            // user wants a full seasons summary
-            $seasonYear = htmlentities(trim($_GET["season"]));
-            
-            // only proceed with the query if the input matches regex constraints
-            if (checkSeasonRegex($seasonYear)) {
-                $seasonStmt = $conn->prepare("SELECT SeasonID FROM epl_seasons WHERE SeasonYears LIKE ? ;");
-                $seasonStmt -> bind_param("s", $seasonYear);
-                $seasonStmt -> execute();
-                $seasonStmt -> store_result();
-
-                if (($seasonStmt->num_rows() < 1) || ($seasonStmt->num_rows() > 1)) {
-                    http_response_code(404);
-                    $replyMessage = "Ambiguous Season, please reenter season years";
-                    apiReply($replyMessage);
-                    die();
-                } else {
-                    $filterQueryCount++;
-                    $seasonStmt->bind_result($seasonID);
-                    $seasonStmt->fetch();
-                    $conditionalQueries .= "WHERE SeasonID = ? ";
-                    $preparedStatementTypes = "i";
-                    $preparedStatementDataArray = array($seasonID);
-                }
-            } else {
-                http_response_code(400);
-                $errorMessage = "Requested season format is unrecognised, please try again using the format YYYY-YYYY.";
-                apiReply($errorMessage);
-                die();
-            }
-        } elseif (isset($_GET['usersearch'])) {
+        if (isset($_GET['usersearch'])) {
             // wildcard search for main search bar!
             $userSearchStmt = $conn->prepare("SELECT ClubID FROM epl_clubs WHERE ClubName LIKE ? ");
             $userEntry = addUnderScores(htmlentities(trim($_GET['usersearch'])));
@@ -274,8 +244,8 @@
 
             if (isset($_GET['referee'])) {
                 $filterQueryCount++;
-                $refereeName = htmlentities(trim($_GET['referee']));
-
+                $refereeName = removeUnderScores(htmlentities(trim($_GET['referee'])));
+                
                 // query referee exists
                 $stmt = $conn->prepare("SELECT RefereeID FROM epl_referees WHERE RefereeName = ? ;");
                 $stmt -> bind_param("s", $refereeName);
@@ -296,7 +266,37 @@
                     apiReply($errorMessage);
                     die();
                 }
-            }  
+            }
+        } elseif (isset($_GET['season'])) {
+            // user wants a full seasons summary on its own (not a filtered query)
+            $seasonYear = htmlentities(trim($_GET["season"]));
+            
+            // only proceed with the query if the input matches regex constraints
+            if (checkSeasonRegex($seasonYear)) {
+                $seasonStmt = $conn->prepare("SELECT SeasonID FROM epl_seasons WHERE SeasonYears LIKE ? ;");
+                $seasonStmt -> bind_param("s", $seasonYear);
+                $seasonStmt -> execute();
+                $seasonStmt -> store_result();
+
+                if (($seasonStmt->num_rows() < 1) || ($seasonStmt->num_rows() > 1)) {
+                    http_response_code(404);
+                    $replyMessage = "Ambiguous Season, please reenter season years";
+                    apiReply($replyMessage);
+                    die();
+                } else {
+                    $filterQueryCount++;
+                    $seasonStmt->bind_result($seasonID);
+                    $seasonStmt->fetch();
+                    $conditionalQueries .= "WHERE SeasonID = ? ";
+                    $preparedStatementTypes = "i";
+                    $preparedStatementDataArray = array($seasonID);
+                }
+            } else {
+                http_response_code(400);
+                $errorMessage = "Requested season format is unrecognised, please try again using the format YYYY-YYYY.";
+                apiReply($errorMessage);
+                die();
+            }
         }
 
         // run the full query now and then build the JSON response
