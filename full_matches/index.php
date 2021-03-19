@@ -267,13 +267,22 @@
                             $awayStmt -> bind_result($awayClubID);
                             $awayStmt -> fetch();
                         }
-        
-                        $matchStatement = $conn->prepare("INSERT INTO `epl_matches` (`MatchID`, `SeasonID`, `MatchDate`, `KickOffTime`, `RefereeID`) VALUES (NULL, ?, ?, ?, ?);");
-                        $matchStatement -> bind_param("issi",
-                                    $finalSeasonID,
-                                    $finalMatchDate,
-                                    $finalKickOffTime,
-                                    $returnedRefereeID);
+
+                        // if the user id is available from the website, grab it for the insert
+                        if (isset($_POST['userid'])) {
+                            $userID = htmlentities(trim($_POST['userid']));
+                        } else {
+                            // else grab the API key and use for the user insert for non website additions
+                            $userID = $_SERVER['PHP_AUTH_PW'];
+                        }
+
+                        $matchStatement = $conn->prepare("INSERT INTO `epl_matches` (`MatchID`, `SeasonID`, `MatchDate`, `KickOffTime`, `RefereeID`, `AddedByUserID`) VALUES (NULL, ?, ?, ?, ?, ?);");
+                        $matchStatement -> bind_param("issis",
+                                                $finalSeasonID,
+                                                $finalMatchDate,
+                                                $finalKickOffTime,
+                                                $returnedRefereeID,
+                                                $userID);
                         $matchStatement -> execute();
                         if ($matchStatement === false) {
                             http_response_code(500);
