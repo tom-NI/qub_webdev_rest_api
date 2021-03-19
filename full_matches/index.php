@@ -3,6 +3,16 @@
     require("../apifunctions.php");
     require("../dbconn.php");
     if (checkAPIKey()) {
+
+        // for edits to matches, record what user added / modified data
+        // if the user id is available from the website, grab it for the insert
+        if (isset($_POST['userid'])) {
+            $userID = htmlentities(trim($_POST['userid']));
+        } else {
+            // else grab the API key and use for the user insert for non website additions
+            $userID = $_SERVER['PHP_AUTH_PW'];
+        }
+
         if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             $finalDataSet = array();
             
@@ -205,6 +215,7 @@
             // encode the final data set to JSON
             echo json_encode($finalDataSet);
         } elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            // otherwise someone is pushing data to the API;
             if (isset($_GET['addnewresult'])) {
                 require("part_page_get_full_match.php");
         
@@ -266,14 +277,6 @@
                         if ($awayStmt -> num_rows > 0) {
                             $awayStmt -> bind_result($awayClubID);
                             $awayStmt -> fetch();
-                        }
-
-                        // if the user id is available from the website, grab it for the insert
-                        if (isset($_POST['userid'])) {
-                            $userID = htmlentities(trim($_POST['userid']));
-                        } else {
-                            // else grab the API key and use for the user insert for non website additions
-                            $userID = $_SERVER['PHP_AUTH_PW'];
                         }
 
                         $matchStatement = $conn->prepare("INSERT INTO `epl_matches` (`MatchID`, `SeasonID`, `MatchDate`, `KickOffTime`, `RefereeID`, `AddedByUserID`) VALUES (NULL, ?, ?, ?, ?, ?);");
@@ -377,6 +380,19 @@
                 if ($matchDateInThePast && $notTheSameTeams && $shotsAreGreaterThanShotsOT && $halfTimeGoalsLessThanFullTime 
                     && $shotsOTisntLessThanGoals  && $foulsLessThanTotalCards) {
                         $editedMatchID = htmlentities(trim($_POST['id']));
+
+                        // check the match still exists first, just in case!
+                        $stmt = $conn->prepare("SELECT MatchID FROM epl_matches WHERE MatchID = ? ;");
+                        $stmt -> bind_param("i", $editedMatchID);
+                        $stmt -> execute();
+                        $stmt -> store_result();
+                        if ($stmt->num_rows == 0) {
+                            http_response_code(500);
+                            $replyMessage = "That Match doesnt exist, please review and try again";
+                            apiReply($replyMessage);
+                            die();
+                        }
+
                         $justificationForChange = htmlentities(trim($_POST['change_justification']));
 
                         // get current matches season first (non editable)
@@ -469,16 +485,11 @@
                             die();
                         }
 
-                        // TODO - get user ID
-                        $tempDummyUserID = 50000;
-                        // session ID = $userID;
-                        // fetch user id from name?
-
                         $currentDateTime = date("Y-m-d H:i:s");
                         $editMatchStmt = $conn->prepare("INSERT INTO `epl_match_edits` (`EditID`, `MatchID`, `EditedByUserID`, `EditDescription`, `EditedDate`) VALUES (NULL, ?, ?, ?, ? );");
-                        $editMatchStmt -> bind_param("iiss",
+                        $editMatchStmt -> bind_param("isss",
                                 $editedMatchID,
-                                $tempDummyUserID,
+                                $userID,
                                 $justificationForChange,
                                 $currentDateTime
                             );
@@ -495,7 +506,7 @@
                             $homeDataEntryStmt -> close();
                             $awayDataEntryStmt -> close();
                             $editMatchStmt -> close();
-                            http_response_code(200);
+                            http_response_code(201);
                             $replyMessage = "Match records updated successfully";
                             apiReply($replyMessage);
                             die();
