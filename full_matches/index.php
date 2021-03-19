@@ -346,7 +346,7 @@
         
                         if ($allEntriesSuccessful) {
                             http_response_code(201);
-                            $replyMessage = "Match was successfully input, thank you for your contribution";
+                            $replyMessage = "Match was successfully added, thank you for your contribution";
                             apiReply($replyMessage);
                         } else {
                             http_response_code(500);
