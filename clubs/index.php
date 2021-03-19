@@ -60,9 +60,8 @@
                 $finalClubName = parseClubName($newClubName);
                 
                 // check DB to see if the club name already exists first
-                require("../api_auth.php");
                 $allClubsURL = "http://tkilpatrick01.lampt.eeecs.qub.ac.uk/epl_api_v1/clubs?all_clubs";
-                $allCLubsAPIData = file_get_contents($allClubsURL);
+                $allCLubsAPIData = postDevKeyInHeader($allClubsURL);
                 $allClubsList = json_decode($allCLubsAPIData, true);
 
                 foreach ($allClubsList as $existingClub) {
