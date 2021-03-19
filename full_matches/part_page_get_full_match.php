@@ -1,6 +1,5 @@
 <?php
-    $resultString = "";
-    // obtain all form values safely first;
+    // obtain all form values safely;
     $finalMatchDate = htmlentities(trim($_POST['date']));
     $finalKickOffTime = htmlentities(trim($_POST['time']));
     $finalRefereeName = htmlentities(trim($_POST['refereename']));
@@ -36,18 +35,21 @@
     $foulsLessThanTotalCards = false;
     $currentSeasonSelected = false;
 
-    // TODO - CHECK THE DATE AND TIME ARE PARSED CORRECTLY!
+    // this is all the logic that can be determined for adding or editing a match to try keep data clean
+    // initialise string to add any error messages to!!
+    $resultString = "";
+
     $getSubmissionDateTime = date("Y-m-d H:i:s");
     if ($finalMatchDate > $getSubmissionDateTime) {
         $matchDateInThePast = false;
-        $resultString .= "Match date appears to be in the future, please enter historical records only. ";
+        $resultString .= "Match date appears to be in the future. ";
     } else {
         $matchDateInThePast = true;
     }
 
     // Teams cannot be the same team - derived from the same list!
     if ($finalHomeClubName === $finalAwayClubName) {
-        $resultString .= "Same club selected for both teams, please enter two different clubs. ";
+        $resultString .= "The Same club has been selected for both teams, please enter two different clubs. ";
         $notTheSameTeams = false;
     } else {
         $notTheSameTeams = true;
@@ -55,7 +57,7 @@
     
     // Shots on target cannot be > shots
     if (($finalHomeTeamShots < $finalHomeTeamShotsOnTarget) || ($finalAwayTeamShots < $finalHomeTeamShotsOnTarget)) {
-        $resultString .= "Shots cannot be greater than the shots on target, please reenter data.  ";
+        $resultString .= "Shots cannot be greater than the shots on target.  ";
         $shotsAreGreaterThanShotsOT = false;
     } else {
         $shotsAreGreaterThanShotsOT = true;
@@ -63,7 +65,7 @@
 
     // Half time goals cannot be > full time goals
     if (($finalHomeTeamHalfTimeGoals > $finalHomeTeamTotalGoals) || ($finalAwayTeamHalfTimeGoals > $finalAwayTeamTotalGoals)) {
-        $resultString .= "Half time goals cannot be greater than full time goals, please enter data again.  ";
+        $resultString .= "Half time goals cannot be greater than full time goals.  ";
         $halfTimeGoalsLessThanFullTime = false;
     } else {
         $halfTimeGoalsLessThanFullTime = true;
@@ -71,7 +73,7 @@
 
     // Score cannot be less than total shots on target!
     if (($finalHomeTeamShotsOnTarget < $finalHomeTeamTotalGoals) || ($finalAwayTeamShotsOnTarget < $finalAwayTeamTotalGoals)) {
-        $resultString .= "Shots on Target cannot be less than goals scored!  Please check and enter data again.  ";
+        $resultString .= "Shots on Target cannot be less than goals scored.  ";
         $shotsOTisntLessThanGoals = false;
     } else {
         $shotsOTisntLessThanGoals = true;
@@ -81,8 +83,13 @@
     if ($finalHomeTeamFouls < ($finalHomeTeamYellowCards + $finalHomeTeamRedCards) ||
         $finalAwayTeamFouls < ($finalAwayTeamYellowCards + $finalAwayTeamRedCards)) {
             $foulsLessThanTotalCards = false;
-            $resultString .= "Fouls are less than yellow cards + red cards, please check data and enter again.";
+            $resultString .= "Fouls are less than yellow cards + red cards.";
     } else {
         $foulsLessThanTotalCards = true;
+    }
+
+    // accrue a final retry message to the user if any error specific error messages are accrued
+    if (strlen($resultString) > 0) {
+        $resultString .= "Please revise the data entered and try again.";
     }
 ?>
