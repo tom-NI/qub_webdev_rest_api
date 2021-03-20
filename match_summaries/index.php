@@ -11,7 +11,7 @@
         $filterQueryCount = 0;
 
         // CANT PUT THIS ONTO MULTI LINES AS IT INSERTS A NEWLINE CHAR AND BREAKS THE QUERY \n
-        $mainQuery = "SELECT epl_matches.MatchID, epl_matches.MatchDate, epl_home_team_stats.HomeClubID, epl_home_team_stats.HTTotalGoals, epl_away_team_stats.ATTotalGoals, epl_away_team_stats.AwayClubID FROM epl_matches INNER JOIN epl_home_team_stats ON epl_matches.MatchID = epl_home_team_stats.MatchID INNER JOIN epl_away_team_stats ON epl_matches.MatchID = epl_away_team_stats.MatchID";
+        $mainQuery = "SELECT epl_matches.MatchID, epl_matches.MatchDate, epl_home_team_stats.HomeClubName, epl_home_team_stats.HTTotalGoals, epl_away_team_stats.ATTotalGoals, epl_away_team_stats.AwayClubName FROM epl_matches INNER JOIN epl_home_team_stats ON epl_matches.MatchID = epl_home_team_stats.MatchID INNER JOIN epl_away_team_stats ON epl_matches.MatchID = epl_away_team_stats.MatchID INNER JOIN epl_seasons ON epl_matches.SeasonYears = epl_seasons.SeasonYears";
 
         $orderByQuery = "ORDER BY epl_matches.MatchID DESC";
         $matchSummaryQuery = "{$mainQuery} {$orderByQuery}";
@@ -25,12 +25,12 @@
 
         if (isset($_GET['usersearch'])) {
             // wildcard search for main search bar!
-            $userSearchStmt = $conn->prepare("SELECT ClubID FROM epl_clubs WHERE ClubName LIKE ? ");
+            $userSearchStmt = $conn->prepare("SELECT ClubName FROM epl_clubs WHERE ClubName LIKE ? ");
             $userEntry = addUnderScores(htmlentities(trim($_GET['usersearch'])));
             $userSearchStmt -> bind_param("s", $userEntry);
             $userSearchStmt -> execute();
             $userSearchStmt -> store_result();
-            $userSearchStmt -> bind_result($clubID);
+            $userSearchStmt -> bind_result($clubName);
             $userSearchStmt -> fetch();
 
             // only proceed if the club exists in the database
@@ -42,9 +42,9 @@
             } elseif ($userSearchStmt->num_rows == 1) {
                 // valid club - setup the whole query and finalise the SQL query structure
                 $filterQueryCount++;
-                $conditionalQueries .= "WHERE (HomeClubID = ? OR AwayClubID = ? )";
-                $preparedStatementTypes = "ii";
-                $preparedStatementDataArray = array($clubID,$clubID);
+                $conditionalQueries .= "WHERE (HomeClubName = ? OR AwayClubName = ? )";
+                $preparedStatementTypes = "ss";
+                $preparedStatementDataArray = array($clubName, $clubName);
             } else {
                 http_response_code(400);
                 $errorMessage = "That club cannot be identified, please enter a new club and try again";
@@ -57,7 +57,6 @@
             if (isset($_GET['club']) && !isset($_GET['opposition_team'])
                 || (isset($_GET['opposition_team']) && !isset($_GET['club']))) {
                 
-
                 // vary the club search by the provided parameter
                 if ((isset($_GET['opposition_team']) && !isset($_GET['club']))) {
                     $clubFilter = htmlentities(trim($_GET['opposition_team']));
@@ -66,21 +65,21 @@
                 }
 
                 // query club exists first
-                $stmt = $conn->prepare("SELECT ClubID FROM epl_clubs WHERE ClubName = ? ;");
+                $stmt = $conn->prepare("SELECT ClubName FROM epl_clubs WHERE ClubName = ? ;");
                 $stmt -> bind_param("s", $clubFilter);
                 $stmt -> execute();
                 $stmt -> store_result();
-                $stmt -> bind_result($clubID);
+                $stmt -> bind_result($clubName);
                 $stmt -> fetch();
 
                 // concatentate the SQL query appropriately
                 if ($stmt->num_rows == 1) {
                     $filterQueryCount++;
                     $joinAdverb = provideSQLQueryJoinAdverb($conditionalQueries);
-                    $conditionalQueries .= "{$joinAdverb} (HomeClubID = ? OR AwayClubID = ?) ";
-                    $preparedStatementTypes .= "ii";
-                    $preparedStatementDataArray[] = $clubID;
-                    $preparedStatementDataArray[] = $clubID;
+                    $conditionalQueries .= "{$joinAdverb} (HomeClubName = ? OR AwayClubName = ?) ";
+                    $preparedStatementTypes .= "ss";
+                    $preparedStatementDataArray[] = $clubName;
+                    $preparedStatementDataArray[] = $clubName;
                 } else {
                     http_response_code(400);
                     $errorMessage = "That club cannot be identified or is ambiguous, please enter a new club and try again";
@@ -94,30 +93,30 @@
                 $oppositionClubFilter = removeUnderScores(htmlentities(trim($_GET['opposition_team'])));
 
                 // query club exists
-                $stmt = $conn->prepare("SELECT ClubID FROM epl_clubs WHERE ClubName = ? ;");
+                $stmt = $conn->prepare("SELECT ClubName FROM epl_clubs WHERE ClubName = ? ;");
                 $stmt -> bind_param("s", $clubFilter);
                 $stmt -> execute();
                 $stmt -> store_result();
-                $stmt -> bind_result($homeClubID);
+                $stmt -> bind_result($homeClubName);
                 $stmt -> fetch();
 
                 // query opposition club exists
-                $oppositionStmt = $conn->prepare("SELECT ClubID FROM epl_clubs WHERE ClubName = ? ;");
+                $oppositionStmt = $conn->prepare("SELECT ClubName FROM epl_clubs WHERE ClubName = ? ;");
                 $oppositionStmt -> bind_param("s", $oppositionClubFilter);
                 $oppositionStmt -> execute();
                 $oppositionStmt -> store_result();
-                $oppositionStmt -> bind_result($oppositionClubID);
+                $oppositionStmt -> bind_result($oppositionClubName);
                 $oppositionStmt -> fetch();
 
                 // concatentate the SQL query appropriately
                 if ($stmt->num_rows == 1 && $oppositionStmt->num_rows == 1) {
                     $joinAdverb = provideSQLQueryJoinAdverb($conditionalQueries);
-                    $conditionalQueries .= "{$joinAdverb} ((HomeClubID = ? AND AwayClubID = ?) OR (HomeClubID = ? AND AwayClubID = ?))";
-                    $preparedStatementTypes .= "iiii";
-                    $preparedStatementDataArray[] = $homeClubID;
-                    $preparedStatementDataArray[] = $oppositionClubID;
-                    $preparedStatementDataArray[] = $oppositionClubID;
-                    $preparedStatementDataArray[] = $homeClubID;
+                    $conditionalQueries .= "{$joinAdverb} ((HomeClubName = ? AND AwayClubName = ?) OR (HomeClubName = ? AND AwayClubName = ?))";
+                    $preparedStatementTypes .= "ssss";
+                    $preparedStatementDataArray[] = $homeClubName;
+                    $preparedStatementDataArray[] = $oppositionClubName;
+                    $preparedStatementDataArray[] = $oppositionClubName;
+                    $preparedStatementDataArray[] = $homeClubName;
                 } else {
                     http_response_code(400);
                     $errorMessage = "One of those clubs cannot be identified or is ambiguous, please try again";
@@ -277,8 +276,9 @@
                 $seasonStmt -> bind_param("s", $seasonYear);
                 $seasonStmt -> execute();
                 $seasonStmt -> store_result();
-
-                if (($seasonStmt->num_rows() < 1) || ($seasonStmt->num_rows() > 1)) {
+                
+                // and then check the season exists at all!
+                if (($seasonStmt->num_rows < 1) || ($seasonStmt->num_rows > 1)) {
                     http_response_code(404);
                     $replyMessage = "Ambiguous Season, please reenter season years";
                     apiReply($replyMessage);
@@ -307,43 +307,39 @@
         }
         $stmt = $conn->prepare($matchSummaryQuery);
         if ($filterQueryCount > 0) {
-            // only lod load in the accrued data types and data array queries above if required for any given query
+            // only load in the accrued data types and data array queries above if required for any given query
             $stmt -> bind_param($preparedStatementTypes, ...$preparedStatementDataArray);
         }
         $stmt -> execute();
-        $stmt -> bind_result($matchID, $matchDate, $homeClubId, $htGoals, $atGoals, $awayClubId);
+        $stmt -> bind_result($matchID, $matchDate, $homeClubName, $htGoals, $atGoals, $awayClubName);
         $stmt -> store_result();
 
-        while ($stmt->fetch()) {
-            $homeClubNameQuery = "SELECT epl_clubs.ClubName, epl_clubs.ClubLogoURL FROM `epl_clubs` WHERE ClubID = {$homeClubId}";
-            $awayClubNameQuery = "SELECT epl_clubs.ClubName, epl_clubs.ClubLogoURL FROM `epl_clubs` WHERE ClubID = {$awayClubId}";
+        while($stmt->fetch()) {
+            // get home club LOGO url
+            $homeURLstmt = $conn->prepare("SELECT epl_clubs.ClubLogoURL FROM `epl_clubs` WHERE ClubName = ? ");
+            $homeURLstmt -> bind_param("s", $homeClubName);
+            $homeURLstmt -> execute();
+            $homeURLstmt -> store_result();
+            $homeURLstmt -> bind_result($homeClubURL);
+            $homeURLstmt -> fetch();
 
-            $homeClubValue = dbQueryCheckReturn($homeClubNameQuery);
-            $awayClubValue = dbQueryCheckReturn($awayClubNameQuery);
-            $homeTeamName;
-            $homeTeamURL;
-            $awayTeamName;
-            $awayTeamURL;
-
-            while ($homeTeamRow = $homeClubValue->fetch_assoc()) {
-                $homeTeamName = $homeTeamRow["ClubName"];
-                $homeTeamURL = $homeTeamRow["ClubLogoURL"];
-            }
-
-            while ($awayTeamRow = $awayClubValue->fetch_assoc()) {
-                $awayTeamName = $awayTeamRow["ClubName"];
-                $awayTeamURL = $awayTeamRow["ClubLogoURL"];
-            }
+            // get away club LOGO url
+            $awayURLstmt = $conn->prepare("SELECT epl_clubs.ClubLogoURL FROM `epl_clubs` WHERE ClubName = ? ");
+            $awayURLstmt -> bind_param("s", $awayClubName);
+            $awayURLstmt -> execute();
+            $awayURLstmt -> store_result();
+            $awayURLstmt -> bind_result($awayClubURL);
+            $awayURLstmt -> fetch();
 
             $matches = array(
                 "id" => $matchID,
                 "matchdate" => $matchDate,
-                "hometeam" => $homeTeamName,
+                "hometeam" => $homeClubName,
                 "homescore" => $htGoals,
                 "awayscore" => $atGoals,
-                "awayteam" => $awayTeamName,
-                "hometeamlogoURL" => $homeTeamURL,
-                "awayteamlogoURL" => $awayTeamURL
+                "awayteam" => $awayClubName,
+                "hometeamlogoURL" => $homeClubURL,
+                "awayteamlogoURL" => $awayClubURL
             );
             $finalDataSet[] = $matches;
         }

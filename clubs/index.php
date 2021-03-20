@@ -27,24 +27,15 @@
                     $currentSeason = $row["currentSeason"];
                 }
 
-                $stmt = $conn->prepare("SELECT SeasonID FROM `epl_seasons` WHERE SeasonYears = ? ");
+                $stmt = $conn->prepare("SELECT DISTINCT epl_home_team_stats.HomeClubName FROM epl_home_team_stats INNER JOIN epl_away_team_stats ON epl_home_team_stats.MatchID = epl_away_team_stats.MatchID INNER JOIN epl_matches ON epl_home_team_stats.MatchID = epl_matches.MatchID WHERE epl_matches.SeasonYears = ? ORDER BY HomeClubName ASC; ");
                 $stmt -> bind_param("s", $currentSeason);
                 $stmt -> execute();
                 $stmt -> store_result();
-                $stmt -> bind_result($SeasonID);
-                $stmt -> fetch();
-                
-                $clubNameQuery = "SELECT DISTINCT epl_clubs.ClubName FROM `epl_clubs` 
-                INNER JOIN epl_home_team_stats ON epl_home_team_stats.HomeClubID = epl_clubs.ClubID
-                INNER JOIN epl_away_team_stats ON epl_away_team_stats.AwayClubID = epl_clubs.ClubID
-                INNER JOIN epl_matches ON epl_matches.MatchID = epl_home_team_stats.MatchID
-                INNER JOIN epl_seasons ON epl_matches.SeasonID = epl_seasons.SeasonID
-                WHERE epl_seasons.SeasonID = {$SeasonID} ORDER BY ClubName ASC;";
+                $stmt -> bind_result($clubName);
 
-                $clubQueryData = dbQueryCheckReturn($clubNameQuery);
-                while ($row = $clubQueryData->fetch_assoc()) {
+                while ($stmt -> fetch()) {
                     $clubnames = array(
-                        "clubname" => $row["ClubName"],
+                        "clubname" => $clubName,
                     );
                     $finalDataSet[] = $clubnames;
                 }

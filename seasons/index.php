@@ -17,6 +17,8 @@
                     $seasonSearch = "{$getYear}-{$secondYear}";
                 }
                 // the search to see if the current season exists in the DB
+
+                
                 $currentSeason = "SELECT SeasonYears FROM `epl_seasons` WHERE SeasonYears LIKE '%{$seasonSearch}%';";
                 $currentSeasonQueryData = dbQueryCheckReturn($currentSeason);
 
