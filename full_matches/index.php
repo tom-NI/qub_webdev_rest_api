@@ -17,8 +17,8 @@
             $finalDataSet = array();
             
             // get FULL data from matches
-            $mainMatchQuery = "SELECT epl_matches.MatchId, epl_matches.MatchDate, epl_matches.KickOffTime, epl_referees.RefereeName, 
-            epl_home_team_stats.HomeClubID, epl_away_team_stats.AwayClubID, epl_home_team_stats.HTTotalGoals, epl_home_team_stats.HTHalfTimeGoals, 
+            $mainMatchQuery = "SELECT epl_matches.MatchId, epl_matches.MatchDate, epl_matches.KickOffTime, epl_matches.RefereeName, 
+            epl_home_team_stats.HomeClubName, epl_away_team_stats.AwayClubName, epl_home_team_stats.HTTotalGoals, epl_home_team_stats.HTHalfTimeGoals, 
             epl_home_team_stats.HTShots, epl_home_team_stats.HTShotsOnTarget, epl_home_team_stats.HTCorners, epl_home_team_stats.HTFouls, 
             epl_home_team_stats.HTYellowCards, epl_home_team_stats.HTRedCards, epl_away_team_stats.ATTotalGoals, 
             epl_away_team_stats.ATHalfTimeGoals, epl_away_team_stats.ATShots, epl_away_team_stats.ATShotsOnTarget, 
@@ -26,9 +26,7 @@
             FROM epl_matches
             INNER JOIN epl_home_team_stats ON epl_matches.MatchID = epl_home_team_stats.MatchID 
             INNER JOIN epl_away_team_stats ON epl_matches.MatchID = epl_away_team_stats.MatchID
-            INNER JOIN epl_seasons ON epl_matches.SeasonID = epl_seasons.SeasonID
-            INNER JOIN epl_referees ON epl_referees.RefereeID = epl_matches.RefereeID
-            INNER JOIN epl_clubs ON epl_clubs.ClubID = epl_home_team_stats.HomeClubID";
+            INNER JOIN epl_seasons ON epl_matches.SeasonYears = epl_seasons.SeasonYears";
 
             $orderQuery = "ORDER BY MatchID DESC";
 
@@ -48,15 +46,15 @@
                     $stmt -> fetch();
 
                     // get both clubIDs from the match in question!
-                    $clubIdStmt = $conn->prepare("SELECT epl_home_team_stats.HomeClubID, epl_away_team_stats.AwayClubID 
+                    $clubNamesStmt = $conn->prepare("SELECT epl_home_team_stats.HomeClubName, epl_away_team_stats.AwayClubName 
                         FROM epl_home_team_stats INNER JOIN epl_away_team_stats 
                         ON epl_away_team_stats.MatchID = epl_home_team_stats.MatchID
                         WHERE epl_away_team_stats.MatchID = ? && epl_home_team_stats.MatchID = ? ");
-                    $clubIdStmt -> bind_param("ii", $matchID, $matchID);
-                    $clubIdStmt -> execute();
-                    $clubIdStmt -> store_result();
-                    $clubIdStmt -> bind_result($homeClubID, $awayClubId);
-                    $clubIdStmt -> fetch();
+                    $clubNamesStmt -> bind_param("ii", $matchID, $matchID);
+                    $clubNamesStmt -> execute();
+                    $clubNamesStmt -> store_result();
+                    $clubNamesStmt -> bind_result($homeClubName, $awayClubName);
+                    $clubNamesStmt -> fetch();
 
                     $conditionQuery = "WHERE epl_matches.MatchId = {$matchID}";
                     $finalQuery = "{$mainMatchQuery} {$conditionQuery} {$orderQuery}";
@@ -69,13 +67,13 @@
             } elseif (isset($_GET['fullseason'])) {
                 // if the user requests a full seasons matches
                 // first check the season input and check it exists within the DB before proceeding (incase user can change on client)
-                $seasonStmt = $conn->prepare("SELECT SeasonID FROM epl_seasons WHERE SeasonYears LIKE ? ");
-                $seasonYears = htmlentities(trim($_GET['fullseason']));
-                if (checkSeasonRegex($seasonYears)) {
-                    if (is_numeric($seasonYears)) {
-                        $seasonStmt->bind_param("i", $seasonYears);
+                $seasonStmt = $conn->prepare("SELECT SeasonYears FROM epl_seasons WHERE SeasonYears LIKE ? ");
+                $providedSeasonYears = htmlentities(trim($_GET['fullseason']));
+                if (checkSeasonRegex($providedSeasonYears)) {
+                    if (is_numeric($providedSeasonYears)) {
+                        $seasonStmt->bind_param("i", $providedSeasonYears);
                     } else {
-                        $seasonStmt->bind_param("s", $seasonYears);
+                        $seasonStmt->bind_param("s", $providedSeasonYears);
                     }
                     $seasonStmt->execute();
                     $seasonStmt->store_result();
@@ -87,9 +85,9 @@
                         apiReply($errorMessage);
                         die();
                     } else {
-                        $seasonStmt->bind_result($seasonID);
+                        $seasonStmt->bind_result($seasonYears);
                         $seasonStmt->fetch();
-                        $conditionQuery = "WHERE epl_seasons.SeasonID = {$seasonID}";
+                        $conditionQuery = "WHERE epl_seasons.SeasonYears = '{$seasonYears}'";
                         $finalQuery = "{$mainMatchQuery} {$conditionQuery} {$orderQuery}";
                     }
                 } else {
@@ -111,27 +109,22 @@
 
                 if (($homeTeamNameSearch != null) && (strlen($homeTeamNameSearch) > 0) 
                     && ($awayTeamNameSearch != null) && (strlen($awayTeamNameSearch) > 0)) {
-                    $homeStmt = $conn->prepare("SELECT ClubID FROM `epl_clubs` WHERE ClubName LIKE ? ;");
+                    $homeStmt = $conn->prepare("SELECT * FROM `epl_home_team_stats` WHERE HomeClubName = ? ;");
                     $homeStmt->bind_param("s", $homeTeamNameSearch);
                     $homeStmt->execute();
                     $homeStmt->store_result();
 
-                    $awayStmt = $conn->prepare("SELECT ClubID FROM `epl_clubs` WHERE ClubName LIKE ? ;");
+                    $awayStmt = $conn->prepare("SELECT * FROM `epl_away_team_stats` WHERE AwayClubName = ? ");
                     $awayStmt->bind_param("s", $awayTeamNameSearch);
                     $awayStmt->execute();
                     $awayStmt->store_result();
                     
                     if ($homeStmt->num_rows() > 0 && $awayStmt->num_rows() > 0) {
-                        $homeStmt->bind_result($homeTeamID);
-                        $homeStmt->fetch();
-                        $awayStmt->bind_result($awayTeamID);
-                        $awayStmt->fetch();
-
-                        $defaultTeamQuery = "WHERE (epl_home_team_stats.HomeClubID = {$homeTeamID} AND epl_away_team_stats.AwayClubID = {$awayTeamID})
-                        OR (epl_home_team_stats.HomeClubID = {$awayTeamID} AND epl_away_team_stats.AwayClubID = {$homeTeamID})";
+                        $defaultTeamQuery = "WHERE (epl_home_team_stats.HomeClubName = '{$homeTeamNameSearch}' AND epl_away_team_stats.AwayClubName = '{$awayTeamNameSearch}')
+                        OR (epl_home_team_stats.HomeClubName = '{$awayTeamNameSearch}' AND epl_away_team_stats.AwayClubName = '{$homeTeamNameSearch}')";
 
                         if (isset($_GET['strict'])) {
-                            $teamQuery = "WHERE epl_home_team_stats.HomeClubID = {$homeTeamID} AND epl_away_team_stats.AwayClubID = {$awayTeamID}";
+                            $teamQuery = "WHERE epl_home_team_stats.HomeClubName = '{$homeTeamNameSearch}' AND epl_away_team_stats.AwayClubName = '{$awayTeamNameSearch}'";
                         } else {
                             $teamQuery = $defaultTeamQuery;
                         }
@@ -156,42 +149,39 @@
                 apiReply($errorMessage);
                 die();
             }
-
+            
             $matchData = dbQueryCheckReturn($finalQuery);
 
             // get club names and logo URLS from the database
             while ($row = $matchData->fetch_assoc()) {
-                $homeClubID = $row["HomeClubID"];
-                $awayClubID = $row["AwayClubID"];
+                $homeClubName = $row["HomeClubName"];
+                $awayClubName = $row["AwayClubName"];
 
-                $homeClubNameQuery = "SELECT epl_clubs.ClubName, epl_clubs.ClubLogoURL FROM `epl_clubs` WHERE ClubID = {$homeClubID}";
-                $awayClubNameQuery = "SELECT epl_clubs.ClubName, epl_clubs.ClubLogoURL FROM `epl_clubs` WHERE ClubID = {$awayClubID}";
+                // get home club LOGO url
+                $stmt = $conn->prepare("SELECT epl_clubs.ClubLogoURL FROM `epl_clubs` WHERE ClubName = ? ");
+                $stmt -> bind_param("s", $homeClubName);
+                $stmt -> execute();
+                $stmt -> store_result();
+                $stmt -> bind_result($homeClubURL);
+                $stmt -> fetch();
+                $stmt -> close();
 
-                $homeClubValue = dbQueryCheckReturn($homeClubNameQuery);
-                $awayClubValue = dbQueryCheckReturn($awayClubNameQuery);
-                $homeTeamName;
-                $homeTeamURL;
-                $awayTeamName;
-                $awayTeamURL;
-
-                while ($homeTeamRow = $homeClubValue->fetch_assoc()) {
-                    $homeTeamName = $homeTeamRow["ClubName"];
-                    $homeTeamURL = $homeTeamRow["ClubLogoURL"];
-                }
-
-                while ($awayTeamRow = $awayClubValue->fetch_assoc()) {
-                    $awayTeamName = $awayTeamRow["ClubName"];
-                    $awayTeamURL = $awayTeamRow["ClubLogoURL"];
-                }
+                // get away club LOGO url
+                $stmt = $conn->prepare("SELECT epl_clubs.ClubLogoURL FROM `epl_clubs` WHERE ClubName = ? ");
+                $stmt -> bind_param("s", $awayClubName);
+                $stmt -> execute();
+                $stmt -> store_result();
+                $stmt -> bind_result($awayClubURL);
+                $stmt -> fetch();
                 
                 $singlematch = array(
                     "matchdate" => $row["MatchDate"],
                     "kickofftime" => $row["KickOffTime"],
                     "refereename" => $row["RefereeName"],
-                    "hometeam" => $homeTeamName,
-                    "awayteam" => $awayTeamName,
-                    "hometeamlogoURL" => $homeTeamURL,
-                    "awayteamlogoURL" => $awayTeamURL,
+                    "hometeam" => $row['HomeClubName'],
+                    "awayteam" => $row['AwayClubName'],
+                    "hometeamlogoURL" => $homeClubURL,
+                    "awayteamlogoURL" => $awayClubURL,
                     "hometeamtotalgoals" => $row["HTTotalGoals"],
                     "hometeamhalftimegoals" => $row["HTHalfTimeGoals"],
                     "hometeamshots" => $row["HTShots"],
@@ -240,23 +230,23 @@
                     && $currentSeasonSelected) {
                         // setup control variable
                         $allEntriesSuccessful = false;
-        
+                        
                         // fetch seasonID from DB
-                        $seasonStmt = $conn->prepare("SELECT SeasonID FROM epl_seasons WHERE SeasonYears = ? ");
+                        $seasonStmt = $conn->prepare("SELECT SeasonYears FROM epl_seasons WHERE SeasonYears LIKE ? ");
                         $seasonStmt -> bind_param("s", $finalSeasonName);
                         $seasonStmt -> execute();
                         $seasonStmt -> store_result();
                         if ($seasonStmt -> num_rows > 0) {
-                            $seasonStmt -> bind_result($finalSeasonID);
+                            $seasonStmt -> bind_result($finalSeasonYears);
                             $seasonStmt -> fetch();
                         }
         
                         // fetch refereeID from DB
-                        $refStmt = $conn->prepare("SELECT RefereeID FROM epl_referees WHERE RefereeName = ? ");
+                        $refStmt = $conn->prepare("SELECT RefereeName FROM epl_referees WHERE RefereeName LIKE ? ");
                         $refStmt -> bind_param("s", $finalRefereeName);
                         $refStmt -> execute();
                         $refStmt -> store_result();
-                        $refStmt -> bind_result($returnedRefereeID);
+                        $refStmt -> bind_result($returnedRefereeName);
                         $refStmt -> fetch();
         
                         // fetch home club ID from the DB
@@ -278,13 +268,14 @@
                             $awayStmt -> bind_result($awayClubID);
                             $awayStmt -> fetch();
                         }
+                        print_r($awayStmt);
 
-                        $matchStatement = $conn->prepare("INSERT INTO `epl_matches` (`MatchID`, `SeasonID`, `MatchDate`, `KickOffTime`, `RefereeID`, `AddedByUserID`) VALUES (NULL, ?, ?, ?, ?, ?);");
-                        $matchStatement -> bind_param("issis",
-                                                $finalSeasonID,
+                        $matchStatement = $conn->prepare("INSERT INTO `epl_matches` (`MatchID`, `SeasonYears`, `MatchDate`, `KickOffTime`, `RefereeName`, `AddedByUserID`) VALUES (NULL, ?, ?, ?, ?, ?);");
+                        $matchStatement -> bind_param("sssss",
+                                                $finalSeasonYears,
                                                 $finalMatchDate,
                                                 $finalKickOffTime,
-                                                $returnedRefereeID,
+                                                $returnedRefereeName,
                                                 $userID);
                         $matchStatement -> execute();
                         if ($matchStatement === false) {
@@ -296,9 +287,9 @@
                             $lastEnteredMatchID = $conn->insert_id;
                         }
         
-                        $homeDataEntryStmt = $conn->prepare("INSERT INTO `epl_home_team_stats` (`HomeTeamStatID`, `HomeClubID`, `MatchID`, `HTTotalGoals`, `HTHalfTimeGoals`, `HTShots`, `HTShotsOnTarget`, `HTCorners`, `HTFouls`, `HTYellowCards`, `HTRedCards`) VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
-                        $homeDataEntryStmt -> bind_param("iiiiiiiiii",
-                                    $homeClubID,
+                        $homeDataEntryStmt = $conn->prepare("INSERT INTO `epl_home_team_stats` (`HomeTeamStatID`, `HomeClubName`, `MatchID`, `HTTotalGoals`, `HTHalfTimeGoals`, `HTShots`, `HTShotsOnTarget`, `HTCorners`, `HTFouls`, `HTYellowCards`, `HTRedCards`) VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
+                        $homeDataEntryStmt -> bind_param("siiiiiiiii",
+                                    $homeClubName,
                                     $lastEnteredMatchID,
                                     $finalHomeTeamTotalGoals,
                                     $finalHomeTeamHalfTimeGoals,
@@ -312,7 +303,7 @@
         
                         if ($homeDataEntryStmt === false) {
                             http_response_code(500);
-                            $replyMessage = "There was a problem with entering data, please review and try again";
+                            $replyMessage = "There was a problem with entering home team data, please review and try again";
                             apiReply($replyMessage);
                             die();
                         } else {
@@ -321,10 +312,11 @@
                             $homeMatchIDStmt -> bind_param("i", $lastEnteredHomeID);
                             $homeMatchIDStmt -> execute();
                             $homeMatchIDStmt -> store_result();
+                            print_r($homeMatchIDStmt -> num_rows);
                             if ($homeMatchIDStmt -> num_rows > 0) {
                                 $homeMatchIDStmt -> bind_result($homeMatchId);
                                 $homeMatchIDStmt -> fetch();
-                                $homeMatchIDStmt ->close();
+                                $homeMatchIDStmt -> close();
                             } else {
                                 http_response_code(500);
                                 $replyMessage = "There was a problem with entering data, please review and try again";
@@ -333,9 +325,9 @@
                             }
                         }
         
-                        $awayDataEntryStmt = $conn->prepare("INSERT INTO `epl_away_team_stats` (`AwayTeamStatID`, `AwayClubID`, `MatchID`, `ATTotalGoals`, `ATHalfTimeGoals`, `ATShots`, `ATShotsOnTarget`, `ATCorners`, `ATFouls`, `ATYellowCards`, `ATRedCards`) VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
-                        $awayDataEntryStmt -> bind_param("iiiiiiiiii",
-                                    $awayClubID,
+                        $awayDataEntryStmt = $conn->prepare("INSERT INTO `epl_away_team_stats` (`AwayTeamStatID`, `AwayClubName`, `MatchID`, `ATTotalGoals`, `ATHalfTimeGoals`, `ATShots`, `ATShotsOnTarget`, `ATCorners`, `ATFouls`, `ATYellowCards`, `ATRedCards`) VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
+                        $awayDataEntryStmt -> bind_param("siiiiiiiii",
+                                    $awayClubName,
                                     $homeMatchId,
                                     $finalAwayTeamTotalGoals,
                                     $finalAwayTeamHalfTimeGoals,
@@ -349,7 +341,7 @@
                         
                         if ($awayDataEntryStmt === false) {
                             http_response_code(500);
-                            $replyMessage = "There was a problem with entering Match data, please review and try again";
+                            $replyMessage = "There was a problem with entering away team data, please review and try again";
                             apiReply($replyMessage);
                             die();
                         } else {
