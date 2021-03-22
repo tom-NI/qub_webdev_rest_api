@@ -2,8 +2,8 @@
     header('Content-Type: application/json');
     require("../apifunctions.php");
     require("../dbconn.php");
+    
     if (checkAPIKey()) {
-
         // for edits to matches, record what user added / modified data
         // if the user id is available from the website, grab it for the insert
         if (isset($_POST['userid'])) {
@@ -67,16 +67,18 @@
             } elseif (isset($_GET['fullseason'])) {
                 // if the user requests a full seasons matches
                 // first check the season input and check it exists within the DB before proceeding (incase user can change on client)
-                $seasonStmt = $conn->prepare("SELECT SeasonYears FROM epl_seasons WHERE SeasonYears LIKE ? ");
                 $providedSeasonYears = htmlentities(trim($_GET['fullseason']));
                 if (checkSeasonRegex($providedSeasonYears)) {
+                    $seasonStmt = $conn->prepare("SELECT SeasonYears FROM epl_seasons WHERE SeasonYears LIKE ? ");
                     if (is_numeric($providedSeasonYears)) {
                         $seasonStmt->bind_param("i", $providedSeasonYears);
                     } else {
                         $seasonStmt->bind_param("s", $providedSeasonYears);
                     }
-                    $seasonStmt->execute();
-                    $seasonStmt->store_result();
+                    if ($seasonStmt->execute()) {
+                        $seasonStmt->execute();
+                        $seasonStmt->store_result();
+                    }
         
                     // only proceed if the season exists in the database
                     if (($seasonStmt->num_rows() < 1) || ($seasonStmt->num_rows() > 1)) {
@@ -164,15 +166,14 @@
                 $stmt -> store_result();
                 $stmt -> bind_result($homeClubURL);
                 $stmt -> fetch();
-                $stmt -> close();
 
                 // get away club LOGO url
-                $stmt = $conn->prepare("SELECT epl_clubs.ClubLogoURL FROM `epl_clubs` WHERE ClubName = ? ");
-                $stmt -> bind_param("s", $awayClubName);
-                $stmt -> execute();
-                $stmt -> store_result();
-                $stmt -> bind_result($awayClubURL);
-                $stmt -> fetch();
+                $awayLogostmt = $conn->prepare("SELECT epl_clubs.ClubLogoURL FROM `epl_clubs` WHERE ClubName = ? ");
+                $awayLogostmt -> bind_param("s", $awayClubName);
+                $awayLogostmt -> execute();
+                $awayLogostmt -> store_result();
+                $awayLogostmt -> bind_result($awayClubURL);
+                $awayLogostmt -> fetch();
                 
                 $singlematch = array(
                     "matchdate" => $row["MatchDate"],
@@ -222,7 +223,7 @@
         
                 // if all flags are true, fairly sure data isnt poor quality, so enter new match details;
                 if ($matchDateInThePast
-                    && $notTheSameTeams 
+                    && $notTheSameTeams
                     && $shotsAreGreaterThanShotsOT 
                     && $halfTimeGoalsLessThanFullTime 
                     && $shotsOTisntLessThanGoals 
@@ -235,36 +236,34 @@
                         require("part_check_ref_clubs.php");
 
                         // check season exists in DB
-                        $seasonStmt = $conn->prepare("SELECT SeasonYears FROM epl_seasons WHERE SeasonYears LIKE ? ");
+                        $seasonStmt = $conn->prepare("SELECT SeasonYears FROM epl_seasons WHERE SeasonYears = ? ");
                         $seasonStmt -> bind_param("s", $finalSeasonName);
-                        $seasonStmt -> execute();
-                        $seasonStmt -> store_result();
-                        if ($seasonStmt -> num_rows == 1) {
-                            $seasonStmt -> bind_result($finalSeasonYears);
-                            $seasonStmt -> fetch();
-                        } else {
-                            http_response_code(404);
-                            $replyMessage = "There was a problem with the Season Entered, please review and try again.  If the season doesnt exist, please add to the database first";
-                            apiReply($replyMessage);
-                            die();
+                        if ($seasonStmt -> execute()) {
+                            $seasonStmt -> store_result();
+                            if ($seasonStmt -> num_rows == 0) {
+                                http_response_code(404);
+                                $replyMessage = "There was a problem with the Season Entered, please review and try again.  If the season doesnt exist, please add to the database first";
+                                apiReply($replyMessage);
+                                die();
+                            }
                         }
 
                         $matchStatement = $conn->prepare("INSERT INTO `epl_matches` (`MatchID`, `SeasonYears`, `MatchDate`, `KickOffTime`, `RefereeName`, `AddedByUserID`) VALUES (NULL, ?, ?, ?, ?, ?);");
                         $matchStatement -> bind_param("sssss",
-                                                $finalSeasonYears,
+                                                $finalSeasonName,
                                                 $finalMatchDate,
                                                 $finalKickOffTime,
-                                                $returnedRefereeName,
+                                                $finalRefereeName,
                                                 $userID);
-                        $matchStatement -> execute();
-                        if ($matchStatement === false) {
+                        if (!$matchStatement -> execute()) {
                             http_response_code(500);
                             $replyMessage = "There was a problem with entering Match data, please review and try again";
                             apiReply($replyMessage);
                             die();
                         }
 
-                        $lastEnteredMatchID = $conn->insert_id;
+                        // get the match id for both the home and away team stat tables
+                        $lastEnteredMatchID = (int) $conn->insert_id;
         
                         $homeDataEntryStmt = $conn->prepare("INSERT INTO `epl_home_team_stats` (`HomeTeamStatID`, `HomeClubName`, `MatchID`, `HTTotalGoals`, `HTHalfTimeGoals`, `HTShots`, `HTShotsOnTarget`, `HTCorners`, `HTFouls`, `HTYellowCards`, `HTRedCards`) VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
                         $homeDataEntryStmt -> bind_param("siiiiiiiii",
@@ -278,35 +277,17 @@
                                     $finalHomeTeamFouls,
                                     $finalHomeTeamYellowCards,
                                     $finalHomeTeamRedCards);
-                        $homeDataEntryStmt -> execute();
-        
-                        if ($homeDataEntryStmt === false) {
+                        if (!$homeDataEntryStmt -> execute()) {
                             http_response_code(500);
                             $replyMessage = "There was a problem with entering home team data, please review and try again";
                             apiReply($replyMessage);
                             die();
-                        } else {
-                            $lastEnteredHomeID = (int) $conn->insert_id;
-                            $homeMatchIDStmt = $conn->prepare("SELECT MatchID FROM `epl_home_team_stats` WHERE HomeTeamStatID = ? ;");
-                            $homeMatchIDStmt -> bind_param("i", $lastEnteredHomeID);
-                            $homeMatchIDStmt -> execute();
-                            $homeMatchIDStmt -> store_result();
-
-                            if ($homeMatchIDStmt -> num_rows > 0) {
-                                $homeMatchIDStmt -> bind_result($homeMatchId);
-                                $homeMatchIDStmt -> fetch();
-                            } else {
-                                http_response_code(500);
-                                $replyMessage = "There was a problem with entering data, please review and try again";
-                                apiReply($replyMessage);
-                                die();
-                            }
                         }
         
                         $awayDataEntryStmt = $conn->prepare("INSERT INTO `epl_away_team_stats` (`AwayTeamStatID`, `AwayClubName`, `MatchID`, `ATTotalGoals`, `ATHalfTimeGoals`, `ATShots`, `ATShotsOnTarget`, `ATCorners`, `ATFouls`, `ATYellowCards`, `ATRedCards`) VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
                         $awayDataEntryStmt -> bind_param("siiiiiiiii",
                                     $awayClubName,
-                                    $homeMatchId,
+                                    $lastEnteredMatchID,
                                     $finalAwayTeamTotalGoals,
                                     $finalAwayTeamHalfTimeGoals,
                                     $finalAwayTeamShots,
@@ -315,26 +296,15 @@
                                     $finalAwayTeamFouls,
                                     $finalAwayTeamYellowCards,
                                     $finalAwayTeamRedCards);
-                        $awayDataEntryStmt -> execute();
-                        
-                        if ($awayDataEntryStmt === false) {
+                        if (!$awayDataEntryStmt -> execute()) {
                             http_response_code(500);
                             $replyMessage = "There was a problem with entering away team data, please review and try again";
                             apiReply($replyMessage);
                             die();
-                        } else {
-                            $allEntriesSuccessful = true;
                         }
-        
-                        if ($allEntriesSuccessful) {
-                            http_response_code(201);
-                            $replyMessage = "Match was successfully added, thank you for your contribution";
-                            apiReply($replyMessage);
-                        } else {
-                            http_response_code(500);
-                            $replyMessage = "Match was not successfully input, please try again";
-                            apiReply($replyMessage);
-                        }
+                        http_response_code(201);
+                        $replyMessage = "Match was successfully added, thank you for your contribution";
+                        apiReply($replyMessage);
                 } else {
                     // accrue all the error messages and send them back here
                     http_response_code(400);
@@ -367,18 +337,15 @@
                         // now check referee, clubs and season exists in the DB first before proceeding
                         require("part_check_ref_clubs.php");
                         
-                        $editMatchStatement = $conn->prepare("UPDATE `epl_matches` SET `SeasonYears` = ?, `MatchDate` = ? , `KickOffTime` = ? , `RefereeName` = ?, `AddedByUserID` = ? WHERE `epl_matches`.`MatchID` = ? ;");
-                        $editMatchStatement -> bind_param("sssssi",
-                                $finalSeasonYears,
+                        $editMatchStatement = $conn->prepare("UPDATE `epl_matches` SET `MatchDate` = ? , `KickOffTime` = ? , `RefereeName` = ?, `AddedByUserID` = ? WHERE `epl_matches`.`MatchID` = ? ;");
+                        $editMatchStatement -> bind_param("ssssi",
                                 $finalMatchDate,
                                 $finalKickOffTime,
                                 $finalRefereeName,
                                 $userID,
                                 $editedMatchID
                             );
-                        $editMatchStatement -> execute();
-                        $editMatchStatement -> store_result();
-                        if ($editMatchStatement === false) {
+                        if (!$editMatchStatement -> execute()) {
                             http_response_code(500);
                             $replyMessage = "There was a problem with updating Match data, please review and try again";
                             apiReply($replyMessage);
@@ -398,9 +365,7 @@
                                 $finalHomeTeamRedCards,
                                 $editedMatchID
                             );
-                        $editHomeMatchStmt -> execute();
-                        $editHomeMatchStmt -> store_result();
-                        if ($editHomeMatchStmt === false) {
+                        if (!$editHomeMatchStmt -> execute()) {
                             http_response_code(500);
                             $replyMessage = "There was a problem with updating home team data, please review and try again";
                             apiReply($replyMessage);
@@ -420,9 +385,7 @@
                                 $finalAwayTeamRedCards,
                                 $editedMatchID
                             );
-                        $editAwayMatchStmt -> execute();
-                        $editAwayMatchStmt -> store_result();
-                        if ($editAwayMatchStmt === false) {
+                        if (!$editAwayMatchStmt -> execute()) {
                             http_response_code(500);
                             $replyMessage = "There was a problem with updating away team data, please review and try again";
                             apiReply($replyMessage);
@@ -437,24 +400,15 @@
                                 $justificationForChange,
                                 $currentDateTime
                             );
-                        $recordMatchEditsStmt -> execute();
-                        if ($recordMatchEditsStmt === false) {
+                        if (!$recordMatchEditsStmt -> execute()) {
                             http_response_code(500);
                             $replyMessage = "There was a problem with entering data, please review and try again";
                             apiReply($replyMessage);
                             die();
                         }
-
-                        if ($editMatchStatement && $editHomeMatchStmt && $editAwayMatchStmt && $recordMatchEditsStmt) {
-                            $editMatchStatement -> close();
-                            $editHomeMatchStmt -> close();
-                            $editAwayMatchStmt -> close();
-                            $recordMatchEditsStmt -> close();
-                            http_response_code(201);
-                            $replyMessage = "Match records updated successfully";
-                            apiReply($replyMessage);
-                            die();
-                        }
+                        http_response_code(201);
+                        $replyMessage = "Match records updated successfully";
+                        apiReply($replyMessage);
                     } else {
                         // accrue all the error messages and reply
                         http_response_code(400);

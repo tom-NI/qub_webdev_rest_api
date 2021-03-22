@@ -56,7 +56,7 @@
     }
     
     // Shots on target cannot be > shots
-    if (($finalHomeTeamShots < $finalHomeTeamShotsOnTarget) || ($finalAwayTeamShots < $finalHomeTeamShotsOnTarget)) {
+    if (($finalHomeTeamShots < $finalHomeTeamShotsOnTarget) || ($finalAwayTeamShots < $finalAwayTeamShotsOnTarget)) {
         $resultString .= "Shots cannot be greater than the shots on target.  ";
         $shotsAreGreaterThanShotsOT = false;
     } else {
