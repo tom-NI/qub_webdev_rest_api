@@ -246,19 +246,17 @@
                 $refereeName = removeUnderScores(htmlentities(trim($_GET['referee'])));
                 
                 // query referee exists
-                $stmt = $conn->prepare("SELECT RefereeID FROM epl_referees WHERE RefereeName = ? ;");
+                $stmt = $conn->prepare("SELECT RefereeName FROM epl_referees WHERE RefereeName = ? ;");
                 $stmt -> bind_param("s", $refereeName);
                 $stmt -> execute();
                 $stmt -> store_result();
-                $stmt -> bind_result($refID);
-                $stmt -> fetch();
 
                 // if ref exists, concatentate the SQL query appropriately
                 if ($stmt->num_rows == 1) {
                     $joinAdverb = provideSQLQueryJoinAdverb($conditionalQueries);
-                    $conditionalQueries .= "{$joinAdverb} RefereeID = ? ";
-                    $preparedStatementTypes .= "i";
-                    $preparedStatementDataArray[] = $refID;
+                    $conditionalQueries .= "{$joinAdverb} RefereeName = ? ";
+                    $preparedStatementTypes .= "s";
+                    $preparedStatementDataArray[] = $refereeName;
                 } else {
                     http_response_code(400);
                     $errorMessage = "Unknown Referee, please try again";
