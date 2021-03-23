@@ -28,7 +28,7 @@
             INNER JOIN epl_away_team_stats ON epl_matches.MatchID = epl_away_team_stats.MatchID
             INNER JOIN epl_seasons ON epl_matches.SeasonYears = epl_seasons.SeasonYears";
 
-            $orderQuery = "ORDER BY MatchID DESC";
+            $orderQuery = "ORDER BY epl_matches.MatchDate DESC";
 
             if (isset($_GET['onematch'])) {
                 // check id exists in DB before proceeding!

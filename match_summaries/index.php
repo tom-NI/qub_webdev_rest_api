@@ -12,8 +12,8 @@
 
         // CANT PUT THIS ONTO MULTI LINES AS IT INSERTS A NEWLINE CHAR AND BREAKS THE QUERY \n
         $mainQuery = "SELECT epl_matches.MatchID, epl_matches.MatchDate, epl_home_team_stats.HomeClubName, epl_home_team_stats.HTTotalGoals, epl_away_team_stats.ATTotalGoals, epl_away_team_stats.AwayClubName FROM epl_matches INNER JOIN epl_home_team_stats ON epl_matches.MatchID = epl_home_team_stats.MatchID INNER JOIN epl_away_team_stats ON epl_matches.MatchID = epl_away_team_stats.MatchID INNER JOIN epl_seasons ON epl_matches.SeasonYears = epl_seasons.SeasonYears";
-
-        $orderByQuery = "ORDER BY epl_matches.MatchID DESC";
+        
+        $orderByQuery = "ORDER BY epl_matches.MatchDate DESC";
         $matchSummaryQuery = "{$mainQuery} {$orderByQuery}";
 
         // string to add on all dynamic conditional queries to any request
