@@ -24,7 +24,7 @@
                 $currentSeasonList = json_decode($currentSeasonData, true);
 
                 foreach($currentSeasonList as $row) {
-                    $currentSeason = $row["currentSeason"];
+                    $currentSeason = $row["current_season"];
                 }
 
                 $stmt = $conn->prepare("SELECT DISTINCT epl_home_team_stats.HomeClubName FROM epl_home_team_stats INNER JOIN epl_away_team_stats ON epl_home_team_stats.MatchID = epl_away_team_stats.MatchID INNER JOIN epl_matches ON epl_home_team_stats.MatchID = epl_matches.MatchID WHERE epl_matches.SeasonYears = ? ORDER BY HomeClubName ASC; ");
