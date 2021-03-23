@@ -25,7 +25,7 @@
                 // todo - change to a single row query!
                 while ($row = $currentSeasonQueryData->fetch_assoc()) {
                     $season = array(
-                        "currentSeason" => $row["SeasonYears"],
+                        "current_season" => $row["SeasonYears"],
                     );
                     $finalDataSet[] = $season;
                 }

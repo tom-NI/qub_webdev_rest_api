@@ -331,13 +331,13 @@
 
             $matches = array(
                 "id" => $matchID,
-                "matchdate" => $matchDate,
-                "hometeam" => $homeClubName,
-                "homescore" => $htGoals,
-                "awayscore" => $atGoals,
-                "awayteam" => $awayClubName,
-                "hometeamlogoURL" => $homeClubURL,
-                "awayteamlogoURL" => $awayClubURL
+                "match_date" => $matchDate,
+                "home_team" => $homeClubName,
+                "home_score" => $htGoals,
+                "away_score" => $atGoals,
+                "away_team" => $awayClubName,
+                "home_team_logo_URL" => $homeClubURL,
+                "away_team_logo_URL" => $awayClubURL
             );
             $finalDataSet[] = $matches;
         }

@@ -12,7 +12,7 @@
             $refereeQueryData = dbQueryCheckReturn($refereeNameQuery);
             while ($row = $refereeQueryData->fetch_assoc()) {
                 $ref = array(
-                    "refname" => $row["RefereeName"],
+                    "referee_name" => $row["RefereeName"],
                 );
                 $finalDataSet[] = $ref;
             }

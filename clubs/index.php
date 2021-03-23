@@ -35,7 +35,7 @@
 
                 while ($stmt -> fetch()) {
                     $clubnames = array(
-                        "clubname" => $clubName,
+                        "club_name" => $clubName,
                     );
                     $finalDataSet[] = $clubnames;
                 }
