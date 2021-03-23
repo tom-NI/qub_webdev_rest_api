@@ -13,7 +13,7 @@
                 $allCurrentClubsData = dbQueryCheckReturn($allCurrentClubsQuery);
                 while ($row = $allCurrentClubsData->fetch_assoc()) {
                     $club = array(
-                        "club" => $row["ClubName"],
+                        "club_name" => $row["ClubName"],
                     );
                     $finalDataSet[] = $club;
                 }

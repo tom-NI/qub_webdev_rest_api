@@ -2,29 +2,29 @@
     // obtain all form values safely;
     $finalMatchDate = htmlentities(trim($_POST['date']));
     $finalKickOffTime = htmlentities(trim($_POST['time']));
-    $finalRefereeName = htmlentities(trim($_POST['refereename']));
+    $finalRefereeName = htmlentities(trim($_POST['referee_name']));
 
-    $homeClubName = htmlentities(trim($_POST['homeclub']));
+    $homeClubName = htmlentities(trim($_POST['home_club']));
     $finalHomeClubName = removeUnderScores($homeClubName);
-    $finalHomeTeamHalfTimeGoals = htmlentities(trim($_POST['ht_halftimegoals']));
-    $finalHomeTeamTotalGoals = htmlentities(trim($_POST['ht_totalgoals']));
+    $finalHomeTeamHalfTimeGoals = htmlentities(trim($_POST['ht_half_time_goals']));
+    $finalHomeTeamTotalGoals = htmlentities(trim($_POST['ht_total_goals']));
     $finalHomeTeamShots = htmlentities(trim($_POST['ht_shots']));
-    $finalHomeTeamShotsOnTarget = htmlentities(trim($_POST['ht_shotsontarget']));
+    $finalHomeTeamShotsOnTarget = htmlentities(trim($_POST['ht_shots_on_target']));
     $finalHomeTeamCorners = htmlentities(trim($_POST['ht_corners']));
     $finalHomeTeamFouls = htmlentities(trim($_POST['ht_fouls']));
-    $finalHomeTeamYellowCards = htmlentities(trim($_POST['ht_yellowcards']));
-    $finalHomeTeamRedCards = htmlentities(trim($_POST['ht_redcards']));
+    $finalHomeTeamYellowCards = htmlentities(trim($_POST['ht_yellow_cards']));
+    $finalHomeTeamRedCards = htmlentities(trim($_POST['ht_red_cards']));
 
-    $awayClubName = htmlentities(trim($_POST['awayclub']));
+    $awayClubName = htmlentities(trim($_POST['away_club']));
     $finalAwayClubName = removeUnderScores($awayClubName);
-    $finalAwayTeamHalfTimeGoals = htmlentities(trim($_POST['at_halftimegoals']));
-    $finalAwayTeamTotalGoals = htmlentities(trim($_POST['at_totalgoals']));
+    $finalAwayTeamHalfTimeGoals = htmlentities(trim($_POST['at_half_time_goals']));
+    $finalAwayTeamTotalGoals = htmlentities(trim($_POST['at_total_goals']));
     $finalAwayTeamShots = htmlentities(trim($_POST['at_shots']));
-    $finalAwayTeamShotsOnTarget = htmlentities(trim($_POST['at_shotsontarget']));
+    $finalAwayTeamShotsOnTarget = htmlentities(trim($_POST['at_shots_on_target']));
     $finalAwayTeamCorners = htmlentities(trim($_POST['at_corners']));
     $finalAwayTeamFouls = htmlentities(trim($_POST['at_fouls']));
-    $finalAwayTeamYellowCards = htmlentities(trim($_POST['at_yellowcards']));
-    $finalAwayTeamRedCards = htmlentities(trim($_POST['at_redcards']));
+    $finalAwayTeamYellowCards = htmlentities(trim($_POST['at_yellow_cards']));
+    $finalAwayTeamRedCards = htmlentities(trim($_POST['at_red_cards']));
 
     // boolean values to run through to check all user inputs prior to accepting data
     $matchDateInThePast = false;
