@@ -121,14 +121,12 @@
                     $awayStmt->execute();
                     $awayStmt->store_result();
                     
-                    if ($homeStmt->num_rows() > 0 && $awayStmt->num_rows() > 0) {
-                        $defaultTeamQuery = "WHERE (epl_home_team_stats.HomeClubName = '{$homeTeamNameSearch}' AND epl_away_team_stats.AwayClubName = '{$awayTeamNameSearch}')
-                        OR (epl_home_team_stats.HomeClubName = '{$awayTeamNameSearch}' AND epl_away_team_stats.AwayClubName = '{$homeTeamNameSearch}')";
-
+                    if ($homeStmt->num_rows > 0 && $awayStmt->num_rows > 0) {
                         if (isset($_GET['strict'])) {
                             $teamQuery = "WHERE epl_home_team_stats.HomeClubName = '{$homeTeamNameSearch}' AND epl_away_team_stats.AwayClubName = '{$awayTeamNameSearch}'";
                         } else {
-                            $teamQuery = $defaultTeamQuery;
+                            $teamQuery = "WHERE ((epl_home_team_stats.HomeClubName = '{$homeTeamNameSearch}' AND epl_away_team_stats.AwayClubName = '{$awayTeamNameSearch}')
+                            OR (epl_home_team_stats.HomeClubName = '{$awayTeamNameSearch}' AND epl_away_team_stats.AwayClubName = '{$homeTeamNameSearch}'))";
                         }
                         
                         if (isset($_GET['count'])) {
@@ -137,7 +135,13 @@
                             $limitQuery = "";
                         }
 
-                        $finalQuery = "{$mainMatchQuery} {$teamQuery} {$orderQuery} {$limitQuery}";
+                        if (isset($_GET['pre_date'])) {
+                            $precedingDate = htmlentities(trim($_GET['pre_date']));
+                            $precedingDateQuery = "AND epl_matches.MatchDate < '{$precedingDate}' ";
+                            $finalQuery = "{$mainMatchQuery} {$teamQuery} {$precedingDateQuery} {$orderQuery} {$limitQuery}";
+                        } else {
+                            $finalQuery = "{$mainMatchQuery} {$teamQuery} {$orderQuery} {$limitQuery}";
+                        }
                     } else {
                         http_response_code(404);
                         $errorMessage = "One of those clubs cannot be identified, please reenter and try again.";
