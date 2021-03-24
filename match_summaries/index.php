@@ -41,7 +41,7 @@
                 $preparedStatementTypes = "ss";
                 $preparedStatementDataArray = array($clubName, $clubName);
             } else {
-                http_response_code(400);
+                http_response_code(404);
                 $errorMessage = "That club cannot be identified, please enter a new club and try again";
                 apiReply($errorMessage);
                 die();
