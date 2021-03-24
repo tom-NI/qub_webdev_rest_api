@@ -32,14 +32,9 @@
             $userSearchStmt -> store_result();
             $userSearchStmt -> bind_result($clubName);
             $userSearchStmt -> fetch();
-
+            
             // only proceed if the club exists in the database
-            if ($userSearchStmt->num_rows > 1) {
-                http_response_code(400);
-                $errorMessage = "That club cannot be identified, please enter a new club and try again";
-                apiReply($errorMessage);
-                die();
-            } elseif ($userSearchStmt->num_rows == 1) {
+            if ($userSearchStmt->num_rows == 1) {
                 // valid club - setup the whole query and finalise the SQL query structure
                 $filterQueryCount++;
                 $conditionalQueries .= "WHERE (HomeClubName = ? OR AwayClubName = ? )";
