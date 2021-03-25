@@ -64,24 +64,20 @@
     }
 
     function queryPagination() {
-        require("dbconn.php");
-        $matchCount = $conn->real_escape_string($_GET['count']);
-        $matchCount = (int) htmlentities($matchCount);
-
+        $matchCount = (int) htmlentities(trim($_GET['count']));
         if (is_numeric($matchCount) && $matchCount > 0) {
             if (isset($_GET['startat'])) {
-                $startFromNum = $conn->real_escape_string($_GET['startat']);
-                $startFromNum = (int) htmlentities($startFromNum);
-                if (is_numeric($startFromNum) && !($startFromNum < 0)) {
-                    if ($startFromNum <= $matchCount) {
-                        $limitQuery = "LIMIT {$startFromNum}, {$matchCount};";
-                    } else {
-                        $limitQuery = "LIMIT {$matchCount};";
-                    }
+                $startFromNum = (int) htmlentities(trim($_GET['startat']));
+                if (is_numeric($startFromNum) && $startFromNum >= 0) {
+                    $limitQuery = "LIMIT {$startFromNum}, {$matchCount};";
+                } else {
+                    $limitQuery = "LIMIT {$matchCount};";
                 }
             } else {
                 $limitQuery = "LIMIT {$matchCount};";
             }
+        } else {
+            $limitQuery = "LIMIT 10";
         }
         return $limitQuery;
     }
