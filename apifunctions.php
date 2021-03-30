@@ -1,7 +1,5 @@
 <?php
-    // functions here are held seperately to main page to simulate a completely different API server.
-
-    
+    // functions here are held seperately to main page to simulate a completely different API server.   
     function dbQueryCheckReturn($sqlQuery) {
         require("dbconn.php");
         $queriedValue = $conn->query($sqlQuery);
