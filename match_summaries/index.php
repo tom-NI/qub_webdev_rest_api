@@ -1,6 +1,5 @@
 <?php
     header('Content-Type: application/json');
-    // api defines a seperate functions file to mimic a true seperate server!
     require("../apifunctions.php");
     require("../dbconn.php");
     if (checkAPIKey()) {
@@ -19,7 +18,7 @@
         // string to add on all dynamic conditional queries to any request
         $conditionalQueries = "";
 
-        // prepared statement variables to store datatypes and data depending on the query
+        // prepared statement variable and array to store datatypes and data depending on the query
         $preparedStatementTypes = "";
         $preparedStatementDataArray = array();
 
@@ -213,7 +212,7 @@
                         $preparedStatementDataArray[] = $margin;
                     } else {
                         http_response_code(400);
-                        $errorMessage = "Please enter a lower (positive) goal difference and try again";
+                        $errorMessage = "Please enter a goal difference between 0 and 12 and try again";
                         apiReply($errorMessage);
                         die();
                     }

@@ -83,7 +83,7 @@
                     // only proceed if the season exists in the database
                     if (($seasonStmt->num_rows() < 1) || ($seasonStmt->num_rows() > 1)) {
                         http_response_code(400);
-                        $errorMessage = "Season doesnt exist or is ambiguous, please try again.";
+                        $errorMessage = "Season doesnt exist or is ambiguous, please try again using the format YYYY-YYYY.";
                         apiReply($errorMessage);
                         die();
                     } else {
@@ -104,50 +104,57 @@
 
                 // split the value into two teams with the ~ delimiter and remove underscores
                 trim($fixtureValue);
-                $newFixtureValue = removeUnderScores($fixtureValue);
-                $fixtureValueArray = explode("~", $newFixtureValue);
-                $homeTeamNameSearch = $fixtureValueArray[0];
-                $awayTeamNameSearch = $fixtureValueArray[1];
+                if (strpos($fixtureValue, "~") !== false) {
+                    $newFixtureValue = removeUnderScores($fixtureValue);
+                    $fixtureValueArray = explode("~", $newFixtureValue);
+                    $homeTeamNameSearch = trim($fixtureValueArray[0]);
+                    $awayTeamNameSearch = trim($fixtureValueArray[1]);
 
-                if (($homeTeamNameSearch != null) && (strlen($homeTeamNameSearch) > 0) 
-                    && ($awayTeamNameSearch != null) && (strlen($awayTeamNameSearch) > 0)) {
-                    $homeStmt = $conn->prepare("SELECT * FROM `epl_home_team_stats` WHERE HomeClubName = ? ;");
-                    $homeStmt->bind_param("s", $homeTeamNameSearch);
-                    $homeStmt->execute();
-                    $homeStmt->store_result();
+                    if (($homeTeamNameSearch != null) && (strlen($homeTeamNameSearch) > 0) 
+                        && ($awayTeamNameSearch != null) && (strlen($awayTeamNameSearch) > 0)) {
+                        $homeStmt = $conn->prepare("SELECT * FROM `epl_home_team_stats` WHERE HomeClubName = ? ;");
+                        $homeStmt->bind_param("s", $homeTeamNameSearch);
+                        $homeStmt->execute();
+                        $homeStmt->store_result();
 
-                    $awayStmt = $conn->prepare("SELECT * FROM `epl_away_team_stats` WHERE AwayClubName = ? ");
-                    $awayStmt->bind_param("s", $awayTeamNameSearch);
-                    $awayStmt->execute();
-                    $awayStmt->store_result();
-                    
-                    if ($homeStmt->num_rows > 0 && $awayStmt->num_rows > 0) {
-                        if (isset($_GET['strict'])) {
-                            $teamQuery = "WHERE epl_home_team_stats.HomeClubName = '{$homeTeamNameSearch}' AND epl_away_team_stats.AwayClubName = '{$awayTeamNameSearch}'";
-                        } else {
-                            $teamQuery = "WHERE ((epl_home_team_stats.HomeClubName = '{$homeTeamNameSearch}' AND epl_away_team_stats.AwayClubName = '{$awayTeamNameSearch}')
-                            OR (epl_home_team_stats.HomeClubName = '{$awayTeamNameSearch}' AND epl_away_team_stats.AwayClubName = '{$homeTeamNameSearch}'))";
-                        }
+                        $awayStmt = $conn->prepare("SELECT * FROM `epl_away_team_stats` WHERE AwayClubName = ? ");
+                        $awayStmt->bind_param("s", $awayTeamNameSearch);
+                        $awayStmt->execute();
+                        $awayStmt->store_result();
                         
-                        if (isset($_GET['count'])) {
-                            $limitQuery = queryPagination();
-                        } else {
-                            $limitQuery = "";
-                        }
+                        if ($homeStmt->num_rows > 0 && $awayStmt->num_rows > 0) {
+                            if (isset($_GET['strict'])) {
+                                $teamQuery = "WHERE epl_home_team_stats.HomeClubName = '{$homeTeamNameSearch}' AND epl_away_team_stats.AwayClubName = '{$awayTeamNameSearch}'";
+                            } else {
+                                $teamQuery = "WHERE ((epl_home_team_stats.HomeClubName = '{$homeTeamNameSearch}' AND epl_away_team_stats.AwayClubName = '{$awayTeamNameSearch}')
+                                OR (epl_home_team_stats.HomeClubName = '{$awayTeamNameSearch}' AND epl_away_team_stats.AwayClubName = '{$homeTeamNameSearch}'))";
+                            }
+                            
+                            if (isset($_GET['count'])) {
+                                $limitQuery = queryPagination();
+                            } else {
+                                $limitQuery = "";
+                            }
 
-                        if (isset($_GET['pre_date'])) {
-                            $precedingDate = htmlentities(trim($_GET['pre_date']));
-                            $precedingDateQuery = "AND epl_matches.MatchDate < '{$precedingDate}' ";
-                            $finalQuery = "{$mainMatchQuery} {$teamQuery} {$precedingDateQuery} {$orderQuery} {$limitQuery}";
+                            if (isset($_GET['pre_date'])) {
+                                $precedingDate = htmlentities(trim($_GET['pre_date']));
+                                $precedingDateQuery = "AND epl_matches.MatchDate < '{$precedingDate}' ";
+                                $finalQuery = "{$mainMatchQuery} {$teamQuery} {$precedingDateQuery} {$orderQuery} {$limitQuery}";
+                            } else {
+                                $finalQuery = "{$mainMatchQuery} {$teamQuery} {$orderQuery} {$limitQuery}";
+                            }
                         } else {
-                            $finalQuery = "{$mainMatchQuery} {$teamQuery} {$orderQuery} {$limitQuery}";
+                            http_response_code(404);
+                            $errorMessage = "One of those clubs cannot be identified, please reenter and try again.";
+                            apiReply($errorMessage);
+                            die();
                         }
-                    } else {
-                        http_response_code(404);
-                        $errorMessage = "One of those clubs cannot be identified, please reenter and try again.";
-                        apiReply($errorMessage);
-                        die();
                     }
+                } else {
+                    http_response_code(400);
+                    $errorMessage = "Please enter two club names seperated by a tilde '~' ";
+                    apiReply($errorMessage);
+                    die();
                 }
             } else {
                 http_response_code(400);
