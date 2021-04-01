@@ -50,35 +50,35 @@
                 // remove extraneous characters and tidy up the club name
                 $finalClubName = parseClubName($newClubName);
                 
-                // check DB to see if the club name already exists first
-                $allClubsURL = "http://tkilpatrick01.lampt.eeecs.qub.ac.uk/epl_api_v1/clubs?all_clubs";
-                $allCLubsAPIData = postDevKeyInHeader($allClubsURL);
-                $allClubsList = json_decode($allCLubsAPIData, true);
-
-                foreach ($allClubsList as $existingClub) {
-                    if ($finalClubName == $existingClub['club']) {
-                        http_response_code(400);
-                        $replyMessage = "That Club already exists";
-                        apiReply($replyMessage);
-                        die();
-                    }
-                }
-                $stmt = $conn->prepare("INSERT INTO `epl_clubs` (`ClubID`, `ClubName`, `ClubLogoURL`) VALUES (NULL, ?, ?);");
-                $stmt -> bind_param("ss", $finalClubName, $newClubLogoURL);
+                // get club ID to check if only one club exists, else throw an error
+                $stmt = $conn->prepare("SELECT ClubID FROM `epl_clubs` WHERE ClubName = ? ;");
+                $stmt -> bind_param("s", $finalClubName);
                 $stmt -> execute();
-                $stmt -> fetch();
-                if ($stmt) {
-                    http_response_code(201);
-                    $replyMessage = "Entry Successful";
+                $stmt -> store_result();
+
+                if ($stmt -> num_rows > 0) {
+                    http_response_code(400);
+                    $replyMessage = "That Club already exists";
                     apiReply($replyMessage);
                     die();
                 } else {
-                    http_response_code(500);
-                    $replyMessage = "Something went wrong, please try again later";
-                    apiReply($replyMessage);
-                    die();
+                    $stmt = $conn->prepare("INSERT INTO `epl_clubs` (`ClubID`, `ClubName`, `ClubLogoURL`) VALUES (NULL, ?, ?);");
+                    $stmt -> bind_param("ss", $finalClubName, $newClubLogoURL);
+                    $stmt -> execute();
+                    $stmt -> fetch();
+                    if ($stmt) {
+                        http_response_code(201);
+                        $replyMessage = "Entry Successful";
+                        apiReply($replyMessage);
+                        die();
+                    } else {
+                        http_response_code(500);
+                        $replyMessage = "Something went wrong, please try again later";
+                        apiReply($replyMessage);
+                        die();
+                    }
+                    $stmt -> close();
                 }
-                $stmt -> close();
             } elseif (isset($_GET['edit']) && isset($_POST['club_to_change'])) {
                 $clubToChange = htmlentities(trim($_POST['club_to_change']));
                 $newClubName = htmlentities(trim($_POST['new_club_name']));

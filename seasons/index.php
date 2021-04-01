@@ -54,42 +54,42 @@
                 $seasonYearsCorrectOrder = checkSeasonYearOrder($userSeasonEntry);
                 
                 if (checkSeasonRegex($userSeasonEntry) && $seasonYearsCorrectOrder) {
-                    // check if the season already exists before adding it twice;
-                    $allSeasonsAPIurl = "http://tkilpatrick01.lampt.eeecs.qub.ac.uk/epl_api_v1/seasons?all_seasons_list";
-                    $allSeasonsAPIdata = postDevKeyInHeader($allSeasonsAPIurl);
-                    $fixtureList = json_decode($allSeasonsAPIdata, true);
+                    // get club ID to check if only one club exists, else throw an error
+                    $stmt = $conn->prepare("SELECT SeasonID FROM `epl_seasons` WHERE SeasonYears = ? ;");
+                    $stmt -> bind_param("s", $userSeasonEntry);
+                    $stmt -> execute();
+                    $stmt -> store_result();
 
-                    foreach ($fixtureList as $existingSeason) {
-                        if ($userSeasonEntry == $existingSeason['season']) {
-                            http_response_code(400);
-                            $replyMessage = "{$userSeasonEntry} season already exists";
-                            apiReply($replyMessage);
-                            die();
-                        }
-                    }
-                    // get the suggested next season to add!
-                    $suggestedNextSeason = findNextSuggestedSeason();
-
-                    if ($userSeasonEntry != $suggestedNextSeason) {
+                    if ($stmt ->num_rows() > 0) {
                         http_response_code(400);
-                        $replyMessage = "{$userSeasonEntry} has not been added, the next required season is - {$suggestedNextSeason}";
+                        $replyMessage = "{$userSeasonEntry} season already exists";
                         apiReply($replyMessage);
                         die();
                     } else {
-                        $stmt = $conn->prepare("INSERT INTO `epl_seasons` (`SeasonID`, `SeasonYears`) VALUES (NULL, ?)");
-                        $stmt -> bind_param("s", $userSeasonEntry);
-                        $stmt -> execute();
-                        $stmt -> fetch();
-                        if ($stmt) {
-                            http_response_code(201);
-                            $replyMessage = "Season successfully added";
+                        // get the suggested next season to add!
+                        $suggestedNextSeason = findNextSuggestedSeason();
+    
+                        if ($userSeasonEntry != $suggestedNextSeason) {
+                            http_response_code(400);
+                            $replyMessage = "{$userSeasonEntry} has not been added, the next required season is - {$suggestedNextSeason}";
                             apiReply($replyMessage);
                             die();
                         } else {
-                            http_response_code(500);
-                            $replyMessage = "Unknown error, please try again later";
-                            apiReply($replyMessage);
-                            die();
+                            $stmt = $conn->prepare("INSERT INTO `epl_seasons` (`SeasonID`, `SeasonYears`) VALUES (NULL, ?)");
+                            $stmt -> bind_param("s", $userSeasonEntry);
+                            $stmt -> execute();
+                            $stmt -> fetch();
+                            if ($stmt) {
+                                http_response_code(201);
+                                $replyMessage = "Season successfully added";
+                                apiReply($replyMessage);
+                                die();
+                            } else {
+                                http_response_code(500);
+                                $replyMessage = "Unknown error, please try again later";
+                                apiReply($replyMessage);
+                                die();
+                            }
                         }
                     }
                 } else {
