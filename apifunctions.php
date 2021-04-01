@@ -165,8 +165,6 @@
     function checkAPIKey() {
         // $getHeaders = getallheaders();
         if(isset($_SERVER['PHP_AUTH_USER']) && isset($_SERVER['PHP_AUTH_PW'])) {
-            // $providedOrgName = base64_decode($_SERVER['PHP_AUTH_USER']);
-            // $providedAPIKey = base64_decode($_SERVER['PHP_AUTH_PW']);
             $providedOrgName = $_SERVER['PHP_AUTH_USER'];
             $providedAPIKey = $_SERVER['PHP_AUTH_PW'];
             if (apiValidateKey($providedAPIKey, $providedOrgName) === false) {
