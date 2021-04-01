@@ -418,7 +418,7 @@
                             die();
                         }
                         http_response_code(201);
-                        $replyMessage = "Match records updated successfully";
+                        $replyMessage = "Match records updated successfully, thank you for keeping our data accurate";
                         apiReply($replyMessage);
                     } else {
                         // accrue all the error messages and reply
