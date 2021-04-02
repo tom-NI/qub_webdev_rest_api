@@ -183,7 +183,8 @@
         }
     }
 
-    // to do - check how to incorporate posting the key value along with form data?
+    // post the developer API key inside the header of a request to the API
+    // for the API, this is the place to modify the API key
     function postDevKeyInHeader($endpoint) {
         // add the dev key to the head of every posted request
         $orgName = "epl_main_site";
