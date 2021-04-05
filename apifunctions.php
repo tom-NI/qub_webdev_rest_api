@@ -221,9 +221,9 @@
     function concealAndRevealIDs($encrypting, $id) {
         $passphrase = "epl_match_id";
         if ($encrypting){
-            $returnID = openssl_encrypt($id,"AES-128-ECB", $passphrase);
+            $returnID = openssl_encrypt($id, "AES-128-ECB", $passphrase);
         } else {
-            $returnID = openssl_decrypt($id,"AES-128-ECB", $passphrase);
+            $returnID = openssl_decrypt($id, "AES-128-ECB", $passphrase);
         }
         return $returnID;
     }
