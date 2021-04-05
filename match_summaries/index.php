@@ -303,10 +303,12 @@
             $stmt -> bind_param($preparedStatementTypes, ...$preparedStatementDataArray);
         }
         $stmt -> execute();
-        $stmt -> bind_result($matchID, $matchDate, $homeClubName, $htGoals, $atGoals, $awayClubName);
+        $stmt -> bind_result($databaseID, $matchDate, $homeClubName, $htGoals, $atGoals, $awayClubName);
         $stmt -> store_result();
-
+        
         while($stmt->fetch()) {
+            $matchID = concealAndRevealIDs(true, $databaseID);
+
             // get home club LOGO url
             $homeURLstmt = $conn->prepare("SELECT epl_clubs.ClubLogoURL FROM `epl_clubs` WHERE ClubName = ? ");
             $homeURLstmt -> bind_param("s", $homeClubName);

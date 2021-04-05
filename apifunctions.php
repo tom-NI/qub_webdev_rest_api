@@ -215,4 +215,16 @@
         }
         return $joinPronoun;
     }
+
+    // manage hiding and revealing IDs in one place
+    // written as a function so that the passphrase can be changed easily in one place
+    function concealAndRevealIDs($encrypting, $id) {
+        $passphrase = "epl_match_id";
+        if ($encrypting){
+            $returnID = openssl_encrypt($id,"AES-128-ECB", $passphrase);
+        } else {
+            $returnID = openssl_decrypt($id,"AES-128-ECB", $passphrase);
+        }
+        return $returnID;
+    }
 ?>

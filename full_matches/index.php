@@ -36,7 +36,9 @@
                 $stmt = $conn->prepare("SELECT MatchID FROM epl_matches WHERE MatchID = ?");
 
                 // return one match from the users entry, escape htmlentities!
-                $singleMatchID = (int) htmlentities(trim($_GET['onematch']));
+                $capturedID = htmlentities(trim($_GET['onematch']));
+                $singleMatchID = concealAndRevealIDs(false, $capturedID);
+                
                 $stmt -> bind_param("i", $singleMatchID);
                 $stmt -> execute();
                 $stmt -> store_result();
@@ -330,7 +332,9 @@
                 // if all flags are true, fairly sure data isnt poor quality, so enter new match details;
                 if ($matchDateInThePast && $notTheSameTeams && $shotsAreGreaterThanShotsOT && $halfTimeGoalsLessThanFullTime 
                     && $shotsOTisntLessThanGoals  && $foulsLessThanTotalCards) {
-                        $editedMatchID = (int) htmlentities(trim($_POST['id']));
+                        $capturedID = htmlentities(trim($_POST['id']));
+                        $editedMatchID = concealAndRevealIDs(false, $capturedID);
+                        
                         $justificationForChange = htmlentities(trim($_POST['change_justification']));
 
                         // check the match exists first, just in case!
