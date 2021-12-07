@@ -1,4 +1,4 @@
-# Masters Web Development Module - code repository.
+# Masters Web Development
 
 This Repository is the REST API, coded as a seperate system to the Website.
 Please refer to the Website and SQL repositories for the remainder of this projects code.
